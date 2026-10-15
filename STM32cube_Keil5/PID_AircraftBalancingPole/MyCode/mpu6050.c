@@ -40,21 +40,32 @@ uint8_t MPU6050_Init(void)
         return 0;
     }
     
-    // 唤醒
-    MPU6050_WriteReg(MPU6050_PWR_MGMT_1, 0x00);
+    /* Wake the device and verify every configuration write. */
+    if (!MPU6050_WriteReg(MPU6050_PWR_MGMT_1, 0x00)) {
+        printf("MPU6050: write PWR_MGMT_1 failed\r\n");
+        return 0;
+    }
     HAL_Delay(100);
     
-    // 采样率 100Hz
-    MPU6050_WriteReg(MPU6050_SMPLRT_DIV, 9);
+    if (!MPU6050_WriteReg(MPU6050_SMPLRT_DIV, 9)) {
+        printf("MPU6050: write SMPLRT_DIV failed\r\n");
+        return 0;
+    }
     
-    // DLPF
-    MPU6050_WriteReg(MPU6050_CONFIG, 0x03);
+    if (!MPU6050_WriteReg(MPU6050_CONFIG, 0x03)) {
+        printf("MPU6050: write CONFIG failed\r\n");
+        return 0;
+    }
     
-    // 陀螺仪 ±250°/s
-    MPU6050_WriteReg(MPU6050_GYRO_CONFIG, 0x00);
+    if (!MPU6050_WriteReg(MPU6050_GYRO_CONFIG, 0x00)) {
+        printf("MPU6050: write GYRO_CONFIG failed\r\n");
+        return 0;
+    }
     
-    // 加速度 ±2g
-    MPU6050_WriteReg(MPU6050_ACCEL_CONFIG, 0x00);
+    if (!MPU6050_WriteReg(MPU6050_ACCEL_CONFIG, 0x00)) {
+        printf("MPU6050: write ACCEL_CONFIG failed\r\n");
+        return 0;
+    }
     
     last_time = HAL_GetTick();
     printf("MPU6050: Initialization OK!\r\n");
@@ -125,7 +136,7 @@ void MPU6050_Calibrate(uint16_t samples)
         gyro_y_offset = gy_sum / valid;
         gyro_z_offset = gz_sum / valid;
         
-        printf("Calibration OK: X=%.3f, Y=%.3f, Z=%.3f °/s\r\n",
+        printf("Calibration OK: X=%.3f, Y=%.3f, Z=%.3f 锟斤拷/s\r\n",
                gyro_x_offset, gyro_y_offset, gyro_z_offset);
     }
 }

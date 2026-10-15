@@ -2,9 +2,14 @@
 #include "gpio.h"
 #include "tim.h"
 #include "usart.h"
+#include "software_i2c.h"
+#include "mpu6050.h"
 #include <stdio.h>
 
 #define PWM_TEST_COMPARE 20U
+
+static uint8_t mpu6050_ok;
+static uint32_t sensor_tick;
 
 void SystemClock_Config(void);
 
@@ -27,12 +32,36 @@ int main(void)
     Error_Handler();
   }
 
-  printf("step2 start\r\n");
+  printf("step3 pwm started\r\n");
+  SW_I2C_Init();
+  mpu6050_ok = MPU6050_Init();
+  printf("step3 mpu6050=%s\r\n", mpu6050_ok ? "OK" : "FAIL");
+  sensor_tick = HAL_GetTick();
 
   while (1)
   {
-    printf("step2 alive\r\n");
-    HAL_Delay(1000U);
+    if (HAL_GetTick() - sensor_tick >= 500U)
+    {
+      sensor_tick = HAL_GetTick();
+      if (mpu6050_ok)
+      {
+        MPU6050_RawData raw;
+        if (MPU6050_ReadRaw(&raw))
+        {
+          printf("raw ax=%d ay=%d az=%d gx=%d gy=%d gz=%d\r\n",
+                 raw.accel_x, raw.accel_y, raw.accel_z,
+                 raw.gyro_x, raw.gyro_y, raw.gyro_z);
+        }
+        else
+        {
+          printf("raw read failed\r\n");
+        }
+      }
+      else
+      {
+        printf("step3 alive, sensor unavailable\r\n");
+      }
+    }
   }
 }
 
