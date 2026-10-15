@@ -34,7 +34,16 @@ int main(void)
 
   printf("step3 pwm started\r\n");
   SW_I2C_Init();
-  mpu6050_ok = MPU6050_Init();
+  if (!SW_I2C_BusReady())
+  {
+    printf("step3 i2c bus not ready\r\n");
+    mpu6050_ok = 0U;
+  }
+  else
+  {
+    printf("step3 i2c bus ready\r\n");
+    mpu6050_ok = MPU6050_Init();
+  }
   printf("step3 mpu6050=%s\r\n", mpu6050_ok ? "OK" : "FAIL");
   sensor_tick = HAL_GetTick();
 

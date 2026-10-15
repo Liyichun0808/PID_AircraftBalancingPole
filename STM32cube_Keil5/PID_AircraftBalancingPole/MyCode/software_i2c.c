@@ -3,15 +3,15 @@
 #include "gpio.h"
 #include <stdio.h>
 
-// ============ Proteus 仿真专用延时 ============
+// ============ Proteus 锟斤拷锟斤拷专锟斤拷锟斤拷时 ============
 static void SW_I2C_Delay(void)
 {
-    // Proteus 仿真需要更长的延时
-    // 如果通信失败，增大这个值
+    // Proteus 锟斤拷锟斤拷锟斤拷要锟斤拷锟斤拷锟斤拷锟斤拷时
+    // 锟斤拷锟酵拷锟绞э拷埽锟斤拷锟斤拷锟斤拷锟斤拷值
     for(volatile int i = 0; i < 50; i++);
 }
 
-// ============ I2C 起始信号 ============
+// ============ I2C 锟斤拷始锟脚猴拷 ============
 static void SW_I2C_Start(void)
 {
     SDA_HIGH();
@@ -23,7 +23,7 @@ static void SW_I2C_Start(void)
     SW_I2C_Delay();
 }
 
-// ============ I2C 停止信号 ============
+// ============ I2C 停止锟脚猴拷 ============
 static void SW_I2C_Stop(void)
 {
     SDA_LOW();
@@ -33,7 +33,7 @@ static void SW_I2C_Stop(void)
     SW_I2C_Delay();
 }
 
-// ============ 发送字节 ============
+// ============ 锟斤拷锟斤拷锟街斤拷 ============
 static uint8_t SW_I2C_WriteByte(uint8_t data)
 {
     uint8_t ack;
@@ -52,7 +52,7 @@ static uint8_t SW_I2C_WriteByte(uint8_t data)
         SW_I2C_Delay();
     }
     
-    // 接收 ACK
+    // 锟斤拷锟斤拷 ACK
     SDA_HIGH();
     SW_I2C_Delay();
     SCL_HIGH();
@@ -64,7 +64,7 @@ static uint8_t SW_I2C_WriteByte(uint8_t data)
     return (ack == 0) ? 1 : 0;
 }
 
-// ============ 读取字节 ============
+// ============ 锟斤拷取锟街斤拷 ============
 static uint8_t SW_I2C_ReadByte(uint8_t send_ack)
 {
     uint8_t data = 0;
@@ -97,10 +97,10 @@ static uint8_t SW_I2C_ReadByte(uint8_t send_ack)
     return data;
 }
 
-// ============ 初始化 ============
+// ============ 锟斤拷始锟斤拷 ============
 void SW_I2C_Init(void)
 {
-    // GPIO 已在 CubeMX 中配置
+    // GPIO 锟斤拷锟斤拷 CubeMX 锟斤拷锟斤拷锟斤拷
     SDA_HIGH();
     SCL_HIGH();
     SW_I2C_Delay();
@@ -108,7 +108,16 @@ void SW_I2C_Init(void)
     printf("SW I2C Initialized (Proteus Simulation)\r\n");
 }
 
-// ============ 写寄存器 ============
+uint8_t SW_I2C_BusReady(void)
+{
+    SDA_HIGH();
+    SCL_HIGH();
+    SW_I2C_Delay();
+    return (HAL_GPIO_ReadPin(I2C_SCL_PORT, I2C_SCL_PIN) == GPIO_PIN_SET &&
+            HAL_GPIO_ReadPin(I2C_SDA_PORT, I2C_SDA_PIN) == GPIO_PIN_SET) ? 1U : 0U;
+}
+
+// ============ 写锟侥达拷锟斤拷 ============
 uint8_t SW_I2C_Write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
     SW_I2C_Start();
@@ -134,7 +143,7 @@ uint8_t SW_I2C_Write(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t
     return 1;
 }
 
-// ============ 读寄存器 ============
+// ============ 锟斤拷锟侥达拷锟斤拷 ============
 uint8_t SW_I2C_Read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
     SW_I2C_Start();
@@ -164,7 +173,7 @@ uint8_t SW_I2C_Read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, uint16_t 
     return 1;
 }
 
-// ============ I2C 扫描 ============
+// ============ I2C 扫锟斤拷 ============
 void SW_I2C_Scan(void)
 {
     uint8_t found = 0;
