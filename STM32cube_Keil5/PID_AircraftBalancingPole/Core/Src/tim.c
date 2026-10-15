@@ -42,7 +42,7 @@ void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  /* APB1 timer clock is 72 MHz: 72 MHz / 800 / 100 = 900 Hz PWM. */
+  /* HSI timer clock is 8 MHz: 8 MHz / 80 / 100 = 1 kHz PWM. */
   htim2.Init.Prescaler = 80-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 100-1;
