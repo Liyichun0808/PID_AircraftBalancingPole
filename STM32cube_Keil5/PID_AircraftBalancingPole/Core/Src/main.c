@@ -57,9 +57,11 @@ int main(void)
         MPU6050_RawData raw;
         if (MPU6050_ReadRaw(&raw))
         {
+          int32_t angle_x_cdeg = (int32_t)(MPU6050_GetAngleX() * 100.0f);
           printf("raw ax=%d ay=%d az=%d gx=%d gy=%d gz=%d\r\n",
                  raw.accel_x, raw.accel_y, raw.accel_z,
                  raw.gyro_x, raw.gyro_y, raw.gyro_z);
+          printf("angle_x_cdeg=%ld\r\n", (long)angle_x_cdeg);
         }
         else
         {
