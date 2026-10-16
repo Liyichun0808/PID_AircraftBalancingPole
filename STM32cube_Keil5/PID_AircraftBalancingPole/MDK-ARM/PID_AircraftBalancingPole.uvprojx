@@ -409,6 +409,16 @@
               <FileType>1</FileType>
               <FilePath>../MyCode/pid_controller.c</FilePath>
             </File>
+            <File>
+              <FileName>balance_controller.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MyCode/balance_controller.c</FilePath>
+            </File>
+            <File>
+              <FileName>control_console.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MyCode/control_console.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
