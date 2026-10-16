@@ -6,14 +6,33 @@
 #include "mpu6050.h"
 #include <stdio.h>
 
+#define CONTROL_PERIOD_MS       10U
+#define SENSOR_FAILURE_LIMIT    3U
+
 static uint8_t mpu6050_ok;
-static uint32_t sample_tick;
+static uint32_t control_next_tick;
 static uint32_t report_tick;
 static MPU6050_RawData latest_raw;
 static int32_t latest_angle_x_cdeg;
 static uint8_t latest_raw_valid;
+static uint8_t sensor_healthy;
+static uint8_t sensor_failure_count;
 
 void SystemClock_Config(void);
+
+static uint8_t Control_UpdateMeasurement(void)
+{
+  if (!MPU6050_ReadRaw(&latest_raw))
+  {
+    latest_raw_valid = 0U;
+    return 0U;
+  }
+
+  latest_angle_x_cdeg =
+      (int32_t)(MPU6050_UpdateAngleX(&latest_raw) * 100.0f);
+  latest_raw_valid = 1U;
+  return 1U;
+}
 
 int main(void)
 {
@@ -52,32 +71,46 @@ int main(void)
     /* The board must remain motionless during this startup calibration. */
     MPU6050_Calibrate(100U);
   }
-  sample_tick = HAL_GetTick();
-  report_tick = sample_tick;
+  sensor_healthy = mpu6050_ok;
+  sensor_failure_count = 0U;
+  control_next_tick = HAL_GetTick() + CONTROL_PERIOD_MS;
+  report_tick = HAL_GetTick();
 
   while (1)
   {
     uint32_t now = HAL_GetTick();
 
-    if (mpu6050_ok && (uint32_t)(now - sample_tick) >= 10U)
+    /* Run the measurement slot on a fixed deadline so loop execution time
+       does not accumulate into the 10 ms control period. */
+    if (sensor_healthy &&
+        (int32_t)(now - control_next_tick) >= 0)
     {
-      sample_tick = now;
-      if (MPU6050_ReadRaw(&latest_raw))
+      do
       {
-        latest_angle_x_cdeg =
-            (int32_t)(MPU6050_UpdateAngleX(&latest_raw) * 100.0f);
-        latest_raw_valid = 1U;
+        control_next_tick += CONTROL_PERIOD_MS;
       }
-      else
+      while ((int32_t)(now - control_next_tick) >= 0);
+
+      if (Control_UpdateMeasurement())
       {
-        latest_raw_valid = 0U;
+        sensor_failure_count = 0U;
+      }
+      else if (sensor_failure_count < SENSOR_FAILURE_LIMIT)
+      {
+        sensor_failure_count++;
+        if (sensor_failure_count >= SENSOR_FAILURE_LIMIT)
+        {
+          sensor_healthy = 0U;
+          __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 0U);
+          __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0U);
+        }
       }
     }
 
     if ((uint32_t)(now - report_tick) >= 500U)
     {
       report_tick = now;
-      if (!mpu6050_ok)
+      if (!sensor_healthy)
       {
         printf("controller disarmed, sensor unavailable\r\n");
       }

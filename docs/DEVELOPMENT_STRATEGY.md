@@ -16,6 +16,11 @@ prescaler of 719 and period of 99 give a 1 kHz PWM base. Motor outputs remain
 at zero until sensor initialization, calibration, axis sign, and the control
 loop have been verified.
 
+The measurement slot now runs from a fixed 10 ms deadline. A successful raw
+sample updates the filtered attitude estimate; three consecutive I2C read
+failures disarm the outputs. The next stage will add the PID calculation and
+two-motor mixer while retaining this health gate.
+
 Until hardware or a working sensor model is available, validation is limited
 to compilation, link/HEX generation, deterministic arithmetic checks, and
 inspection of the control-loop bounds. Runtime sensor values and PID gains
