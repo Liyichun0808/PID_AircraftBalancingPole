@@ -6,8 +6,6 @@
 #include "mpu6050.h"
 #include <stdio.h>
 
-#define PWM_TEST_COMPARE 20U
-
 static uint8_t mpu6050_ok;
 static uint32_t sample_tick;
 static uint32_t report_tick;
@@ -26,9 +24,9 @@ int main(void)
   MX_TIM2_Init();
   MX_USART1_UART_Init();
 
-  /* PA1/TIM2_CH2 and PA2/TIM2_CH3: fixed 20% PWM for step 1. */
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, PWM_TEST_COMPARE);
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, PWM_TEST_COMPARE);
+  /* Keep both motor outputs disabled until the closed-loop controller is armed. */
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 0U);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 0U);
 
   if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) != HAL_OK ||
       HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
@@ -36,19 +34,24 @@ int main(void)
     Error_Handler();
   }
 
-  printf("step3 pwm started\r\n");
+  printf("control outputs disabled at boot\r\n");
   SW_I2C_Init();
   if (!SW_I2C_BusReady())
   {
-    printf("step3 i2c bus not ready\r\n");
+    printf("i2c bus not ready\r\n");
     mpu6050_ok = 0U;
   }
   else
   {
-    printf("step3 i2c bus ready\r\n");
+    printf("i2c bus ready\r\n");
     mpu6050_ok = MPU6050_Init();
   }
-  printf("step3 mpu6050=%s\r\n", mpu6050_ok ? "OK" : "FAIL");
+  printf("mpu6050=%s\r\n", mpu6050_ok ? "OK" : "FAIL");
+  if (mpu6050_ok)
+  {
+    /* The board must remain motionless during this startup calibration. */
+    MPU6050_Calibrate(100U);
+  }
   sample_tick = HAL_GetTick();
   report_tick = sample_tick;
 
@@ -76,7 +79,7 @@ int main(void)
       report_tick = now;
       if (!mpu6050_ok)
       {
-        printf("step3 alive, sensor unavailable\r\n");
+        printf("controller disarmed, sensor unavailable\r\n");
       }
       else if (latest_raw_valid)
       {
@@ -105,10 +108,12 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef osc = {0};
   RCC_ClkInitTypeDef clk = {0};
 
-  osc.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  osc.HSIState = RCC_HSI_ON;
-  osc.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  osc.PLL.PLLState = RCC_PLL_NONE;
+  osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  osc.HSEState = RCC_HSE_ON;
+  osc.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  osc.PLL.PLLState = RCC_PLL_ON;
+  osc.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  osc.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&osc) != HAL_OK)
   {
     Error_Handler();
@@ -116,11 +121,11 @@ void SystemClock_Config(void)
 
   clk.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
                   RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  clk.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+  clk.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   clk.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  clk.APB1CLKDivider = RCC_HCLK_DIV1;
+  clk.APB1CLKDivider = RCC_HCLK_DIV2;
   clk.APB2CLKDivider = RCC_HCLK_DIV1;
-  if (HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&clk, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }

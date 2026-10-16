@@ -136,8 +136,10 @@ void MPU6050_Calibrate(uint16_t samples)
         gyro_y_offset = gy_sum / valid;
         gyro_z_offset = gz_sum / valid;
         
-        printf("Calibration OK: X=%.3f, Y=%.3f, Z=%.3f ��/s\r\n",
-               gyro_x_offset, gyro_y_offset, gyro_z_offset);
+        printf("Calibration OK: X=%ld, Y=%ld, Z=%ld mdps\r\n",
+               (long)(gyro_x_offset * 1000.0f),
+               (long)(gyro_y_offset * 1000.0f),
+               (long)(gyro_z_offset * 1000.0f));
     }
 }
 

@@ -42,8 +42,10 @@ void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  /* HSI timer clock is 8 MHz: 8 MHz / 80 / 100 = 1 kHz PWM. */
-  htim2.Init.Prescaler = 80-1;
+  /* APB1 is 36 MHz with the 72 MHz system clock; STM32F1 doubles the
+     timer clock when the APB prescaler is not 1, so TIM2 runs at 72 MHz.
+     72 MHz / 720 / 100 = 1 kHz PWM. */
+  htim2.Init.Prescaler = 720-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 100-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;

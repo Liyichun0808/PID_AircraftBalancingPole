@@ -10,10 +10,11 @@ This project is developed in stages so each layer can be checked independently.
 6. A fixed-rate control loop and motor PWM mixing.
 7. Calibration and gain tuning on hardware.
 
-The current clock is the STM32F103 HSI at 8 MHz. TIM2 uses a prescaler of 79
-and period of 99, giving approximately 1 kHz PWM. The motor direction and
-sensor sign are not yet verified, so the PID module is added before it is
-allowed to change the PWM outputs.
+The board clock is the 8 MHz external crystal multiplied to a 72 MHz system
+clock. APB1 is 36 MHz and TIM2 receives the doubled 72 MHz timer clock; a
+prescaler of 719 and period of 99 give a 1 kHz PWM base. Motor outputs remain
+at zero until sensor initialization, calibration, axis sign, and the control
+loop have been verified.
 
 Until hardware or a working sensor model is available, validation is limited
 to compilation, link/HEX generation, deterministic arithmetic checks, and
