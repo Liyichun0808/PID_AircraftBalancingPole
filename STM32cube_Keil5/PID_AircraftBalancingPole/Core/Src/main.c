@@ -11,6 +11,14 @@
 #define CONTROL_PERIOD_MS       10U
 #define TIM2_PWM_PERIOD_COUNTS  100U
 
+#if defined(PROJECT_RUNTIME_BUILD)
+#define CONTROL_PROFILE_NAME     "project-runtime"
+#define CONTROL_OUTPUT_ENABLED   1U
+#else
+#define CONTROL_PROFILE_NAME     "hardware-test"
+#define CONTROL_OUTPUT_ENABLED   0U
+#endif
+
 /* Keep the controller configuration in one place so it can be tuned without
    changing the sensor driver or the hardware output code. */
 static const BalanceController_Config controller_config =
@@ -27,7 +35,7 @@ static const BalanceController_Config controller_config =
   .arm_delay_ms = 1000U,
   .arm_samples = 50U,
   .max_angle_cdeg = 4500,
-  .output_enabled = 0U,       /* keep motors disabled during bench testing */
+  .output_enabled = CONTROL_OUTPUT_ENABLED,
   .sensor_failure_limit = 3U
 };
 
@@ -137,7 +145,9 @@ int main(void)
     Error_Handler();
   }
 
-  printf("control outputs disabled at boot\r\n");
+  printf("control profile=%s output_enabled=%u\r\n",
+         CONTROL_PROFILE_NAME,
+         (unsigned)controller_config.output_enabled);
   ControlConsole_Init(&huart1);
   BalanceController_Init(&balance_controller,
                          &controller_config,
