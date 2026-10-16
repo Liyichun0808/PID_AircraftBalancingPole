@@ -404,6 +404,11 @@
               <FileType>1</FileType>
               <FilePath>../MyCode/mpu6050.c</FilePath>
             </File>
+            <File>
+              <FileName>pid_controller.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../MyCode/pid_controller.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
