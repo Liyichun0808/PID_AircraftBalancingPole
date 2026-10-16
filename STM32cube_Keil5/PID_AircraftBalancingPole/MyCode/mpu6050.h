@@ -45,5 +45,6 @@ void MPU6050_Calibrate(uint16_t samples);
 float MPU6050_GetAngleX(void);
 float MPU6050_UpdateAngleX(const MPU6050_RawData *raw);
 float MPU6050_GetGyroX(void);
+float MPU6050_GetGyroXFromRaw(const MPU6050_RawData *raw);
 
 #endif

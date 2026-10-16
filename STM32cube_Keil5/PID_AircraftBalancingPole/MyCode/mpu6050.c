@@ -183,3 +183,13 @@ float MPU6050_GetGyroX(void)
     }
     return data.gyro_x;
 }
+
+float MPU6050_GetGyroXFromRaw(const MPU6050_RawData *raw)
+{
+    if (raw == NULL)
+    {
+        return 0.0f;
+    }
+
+    return (float)raw->gyro_x / gyro_scale - gyro_x_offset;
+}

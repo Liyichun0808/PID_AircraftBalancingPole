@@ -18,8 +18,17 @@ loop have been verified.
 
 The measurement slot now runs from a fixed 10 ms deadline. A successful raw
 sample updates the filtered attitude estimate; three consecutive I2C read
-failures disarm the outputs. The next stage will add the PID calculation and
-two-motor mixer while retaining this health gate.
+failures disarm the outputs. This health gate is retained by the PID and
+two-motor mixer stage below.
+
+The PID stage uses the fused angle for proportional/integral action and the
+calibrated gyro rate for derivative damping, avoiding a noisy finite difference
+of the angle estimate. The mixer uses equal and opposite correction around a
+configurable base PWM. `CONTROL_OUTPUT_ENABLE` remains 0 until the assembled
+mechanism's axis direction, motor polarity, base throttle, and gains are
+verified. Even when enabled, actuation requires 50 valid 10 ms samples and a
+one-second startup delay; an attitude excursion beyond +/-45 degrees or any
+sensor fault disarms both outputs immediately.
 
 Until hardware or a working sensor model is available, validation is limited
 to compilation, link/HEX generation, deterministic arithmetic checks, and

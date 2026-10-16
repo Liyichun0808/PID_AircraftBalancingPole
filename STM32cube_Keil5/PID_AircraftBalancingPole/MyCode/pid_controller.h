@@ -23,5 +23,10 @@ void PID_Init(PID_Controller *pid,
               float integral_min, float integral_max);
 void PID_Reset(PID_Controller *pid);
 float PID_Update(PID_Controller *pid, float setpoint, float measurement, float dt);
+float PID_UpdateWithRate(PID_Controller *pid,
+                         float setpoint,
+                         float measurement,
+                         float measurement_rate,
+                         float dt);
 
 #endif

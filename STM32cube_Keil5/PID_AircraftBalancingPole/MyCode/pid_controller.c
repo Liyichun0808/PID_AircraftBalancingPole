@@ -1,5 +1,10 @@
 #include "pid_controller.h"
 
+static float PID_UpdateCore(PID_Controller *pid,
+                            float error,
+                            float derivative,
+                            float dt);
+
 static float PID_Clamp(float value, float minimum, float maximum)
 {
     if (value < minimum)
@@ -39,6 +44,32 @@ float PID_Update(PID_Controller *pid, float setpoint, float measurement, float d
 {
     float error = setpoint - measurement;
     float derivative = 0.0f;
+
+    if (pid->initialized != 0U && dt > 0.0f)
+    {
+        derivative = (error - pid->previous_error) / dt;
+    }
+
+    return PID_UpdateCore(pid, error, derivative, dt);
+}
+
+float PID_UpdateWithRate(PID_Controller *pid,
+                         float setpoint,
+                         float measurement,
+                         float measurement_rate,
+                         float dt)
+{
+    float error = setpoint - measurement;
+
+    /* error_dot = setpoint_dot - measurement_dot; setpoint is fixed. */
+    return PID_UpdateCore(pid, error, -measurement_rate, dt);
+}
+
+static float PID_UpdateCore(PID_Controller *pid,
+                            float error,
+                            float derivative,
+                            float dt)
+{
     float integral_candidate;
     float unsaturated;
     float output;
@@ -46,11 +77,6 @@ float PID_Update(PID_Controller *pid, float setpoint, float measurement, float d
     if (dt <= 0.0f)
     {
         return 0.0f;
-    }
-
-    if (pid->initialized != 0U)
-    {
-        derivative = (error - pid->previous_error) / dt;
     }
 
     integral_candidate = PID_Clamp(pid->integral + error * dt,
