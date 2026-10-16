@@ -30,7 +30,9 @@ verified. Even when enabled, actuation requires 50 valid 10 ms samples and a
 one-second startup delay; an attitude excursion beyond +/-45 degrees or any
 sensor fault disarms both outputs immediately.
 
-Until hardware or a working sensor model is available, validation is limited
-to compilation, link/HEX generation, deterministic arithmetic checks, and
-inspection of the control-loop bounds. Runtime sensor values and PID gains
-must be confirmed on the actual assembly.
+The repository also contains a deterministic offline policy check at
+`tests/offline_controller_test.py`. It exercises arm/disarm behavior, the
+two-motor mixer, angle protection, and the three-sample sensor-failure latch
+without Proteus or an MPU6050 model. This validates control-state transitions,
+not sensor wiring or physical motor response. Runtime sensor values, motor
+polarity, and PID gains still must be confirmed on the actual assembly.

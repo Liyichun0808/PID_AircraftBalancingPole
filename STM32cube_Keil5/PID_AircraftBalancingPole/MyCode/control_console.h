@@ -13,6 +13,7 @@ typedef enum
 } ControlCommand;
 
 void ControlConsole_Init(UART_HandleTypeDef *uart);
+ControlCommand ControlConsole_DecodeByte(uint8_t byte);
 ControlCommand ControlConsole_Poll(void);
 
 #endif

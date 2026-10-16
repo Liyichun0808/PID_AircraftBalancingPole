@@ -7,16 +7,8 @@ void ControlConsole_Init(UART_HandleTypeDef *uart)
     console_uart = uart;
 }
 
-ControlCommand ControlConsole_Poll(void)
+ControlCommand ControlConsole_DecodeByte(uint8_t byte)
 {
-    uint8_t byte;
-
-    if (console_uart == NULL ||
-        HAL_UART_Receive(console_uart, &byte, 1U, 0U) != HAL_OK)
-    {
-        return CONTROL_COMMAND_NONE;
-    }
-
     switch (byte)
     {
         case 'a':
@@ -31,4 +23,17 @@ ControlCommand ControlConsole_Poll(void)
         default:
             return CONTROL_COMMAND_NONE;
     }
+}
+
+ControlCommand ControlConsole_Poll(void)
+{
+    uint8_t byte;
+
+    if (console_uart == NULL ||
+        HAL_UART_Receive(console_uart, &byte, 1U, 0U) != HAL_OK)
+    {
+        return CONTROL_COMMAND_NONE;
+    }
+
+    return ControlConsole_DecodeByte(byte);
 }
