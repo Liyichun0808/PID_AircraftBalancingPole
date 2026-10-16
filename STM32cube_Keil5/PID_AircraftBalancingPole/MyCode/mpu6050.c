@@ -143,15 +143,27 @@ void MPU6050_Calibrate(uint16_t samples)
 
 float MPU6050_GetAngleX(void)
 {
+    MPU6050_RawData raw;
+
+    if (!MPU6050_ReadRaw(&raw)) {
+        return angle_x;
+    }
+
+    return MPU6050_UpdateAngleX(&raw);
+}
+
+float MPU6050_UpdateAngleX(const MPU6050_RawData *raw)
+{
     MPU6050_Data data;
     uint32_t now = HAL_GetTick();
     float dt = (now - last_time) / 1000.0f;
     
     if (dt > 0.1f) dt = 0.01f;
     
-    if (!MPU6050_ReadAll(&data)) {
-        return angle_x;
-    }
+    data.accel_x = (float)raw->accel_x / accel_scale * 9.80665f;
+    data.accel_y = (float)raw->accel_y / accel_scale * 9.80665f;
+    data.accel_z = (float)raw->accel_z / accel_scale * 9.80665f;
+    data.gyro_x = (float)raw->gyro_x / gyro_scale - gyro_x_offset;
     
     float accel_angle = atan2f(data.accel_y, data.accel_z) * 180.0f / 3.14159f;
     float alpha = 0.96f;

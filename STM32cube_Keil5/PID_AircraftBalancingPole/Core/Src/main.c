@@ -9,7 +9,11 @@
 #define PWM_TEST_COMPARE 20U
 
 static uint8_t mpu6050_ok;
-static uint32_t sensor_tick;
+static uint32_t sample_tick;
+static uint32_t report_tick;
+static MPU6050_RawData latest_raw;
+static int32_t latest_angle_x_cdeg;
+static uint8_t latest_raw_valid;
 
 void SystemClock_Config(void);
 
@@ -45,32 +49,45 @@ int main(void)
     mpu6050_ok = MPU6050_Init();
   }
   printf("step3 mpu6050=%s\r\n", mpu6050_ok ? "OK" : "FAIL");
-  sensor_tick = HAL_GetTick();
+  sample_tick = HAL_GetTick();
+  report_tick = sample_tick;
 
   while (1)
   {
-    if (HAL_GetTick() - sensor_tick >= 500U)
+    uint32_t now = HAL_GetTick();
+
+    if (mpu6050_ok && (uint32_t)(now - sample_tick) >= 10U)
     {
-      sensor_tick = HAL_GetTick();
-      if (mpu6050_ok)
+      sample_tick = now;
+      if (MPU6050_ReadRaw(&latest_raw))
       {
-        MPU6050_RawData raw;
-        if (MPU6050_ReadRaw(&raw))
-        {
-          int32_t angle_x_cdeg = (int32_t)(MPU6050_GetAngleX() * 100.0f);
-          printf("raw ax=%d ay=%d az=%d gx=%d gy=%d gz=%d\r\n",
-                 raw.accel_x, raw.accel_y, raw.accel_z,
-                 raw.gyro_x, raw.gyro_y, raw.gyro_z);
-          printf("angle_x_cdeg=%ld\r\n", (long)angle_x_cdeg);
-        }
-        else
-        {
-          printf("raw read failed\r\n");
-        }
+        latest_angle_x_cdeg =
+            (int32_t)(MPU6050_UpdateAngleX(&latest_raw) * 100.0f);
+        latest_raw_valid = 1U;
       }
       else
       {
+        latest_raw_valid = 0U;
+      }
+    }
+
+    if ((uint32_t)(now - report_tick) >= 500U)
+    {
+      report_tick = now;
+      if (!mpu6050_ok)
+      {
         printf("step3 alive, sensor unavailable\r\n");
+      }
+      else if (latest_raw_valid)
+      {
+        printf("raw ax=%d ay=%d az=%d gx=%d gy=%d gz=%d\r\n",
+               latest_raw.accel_x, latest_raw.accel_y, latest_raw.accel_z,
+               latest_raw.gyro_x, latest_raw.gyro_y, latest_raw.gyro_z);
+        printf("angle_x_cdeg=%ld\r\n", (long)latest_angle_x_cdeg);
+      }
+      else
+      {
+        printf("raw read failed\r\n");
       }
     }
   }
