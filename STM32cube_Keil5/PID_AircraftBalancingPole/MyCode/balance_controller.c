@@ -13,6 +13,14 @@ static float Balance_Clamp(float value, float minimum, float maximum)
     return value;
 }
 
+static uint8_t Balance_FloatIsValid(float value)
+{
+    /* NaN is the only IEEE-754 value that is not equal to itself. The broad
+       bound also rejects infinities before any float-to-integer conversion. */
+    return (value == value && value <= 10000.0f && value >= -10000.0f) ?
+           1U : 0U;
+}
+
 static uint16_t Balance_PwmCount(float value)
 {
     value = Balance_Clamp(value, 0.0f, 99.0f);
@@ -87,7 +95,9 @@ void BalanceController_Update(BalanceController *controller,
     float correction;
     float angle_cdeg_float;
 
-    if (sample_valid == 0U)
+    if (sample_valid == 0U ||
+        Balance_FloatIsValid(angle_deg) == 0U ||
+        Balance_FloatIsValid(gyro_dps) == 0U)
     {
         controller->sensor_healthy = 0U;
         if (controller->sensor_failure_count <
@@ -161,9 +171,24 @@ uint8_t BalanceController_IsArmed(const BalanceController *controller)
     return controller->armed;
 }
 
+uint8_t BalanceController_IsArmRequested(const BalanceController *controller)
+{
+    return controller->arm_requested;
+}
+
+uint8_t BalanceController_IsFaulted(const BalanceController *controller)
+{
+    return controller->faulted;
+}
+
 uint8_t BalanceController_IsHealthy(const BalanceController *controller)
 {
     return controller->sensor_healthy;
+}
+
+uint8_t BalanceController_GetSensorFailureCount(const BalanceController *controller)
+{
+    return controller->sensor_failure_count;
 }
 
 int32_t BalanceController_GetAngleCdeg(const BalanceController *controller)
@@ -179,6 +204,11 @@ int32_t BalanceController_GetGyroMdps(const BalanceController *controller)
 int32_t BalanceController_GetCorrectionMilli(const BalanceController *controller)
 {
     return controller->correction_milli;
+}
+
+int32_t BalanceController_GetIntegralMilli(const BalanceController *controller)
+{
+    return (int32_t)(controller->pid.integral * 1000.0f);
 }
 
 uint16_t BalanceController_GetStableSamples(const BalanceController *controller)

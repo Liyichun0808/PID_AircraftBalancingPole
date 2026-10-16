@@ -54,10 +54,14 @@ void BalanceController_GetPwm(const BalanceController *controller,
                               uint16_t *pwm1,
                               uint16_t *pwm2);
 uint8_t BalanceController_IsArmed(const BalanceController *controller);
+uint8_t BalanceController_IsArmRequested(const BalanceController *controller);
+uint8_t BalanceController_IsFaulted(const BalanceController *controller);
 uint8_t BalanceController_IsHealthy(const BalanceController *controller);
+uint8_t BalanceController_GetSensorFailureCount(const BalanceController *controller);
 int32_t BalanceController_GetAngleCdeg(const BalanceController *controller);
 int32_t BalanceController_GetGyroMdps(const BalanceController *controller);
 int32_t BalanceController_GetCorrectionMilli(const BalanceController *controller);
+int32_t BalanceController_GetIntegralMilli(const BalanceController *controller);
 uint16_t BalanceController_GetStableSamples(const BalanceController *controller);
 
 #endif

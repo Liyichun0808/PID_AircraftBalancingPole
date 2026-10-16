@@ -56,7 +56,13 @@ class Controller:
         self.pwm = (0, 0)
 
     def update(self, valid: bool, angle_deg: float, gyro_dps: float, now_ms: int):
-        if not valid:
+        if (
+            not valid
+            or not math.isfinite(angle_deg)
+            or not math.isfinite(gyro_dps)
+            or abs(angle_deg) > 10000.0
+            or abs(gyro_dps) > 10000.0
+        ):
             self.healthy = False
             self.failures = min(self.failures + 1, self.c.sensor_failure_limit)
             self.disarm()
@@ -90,13 +96,23 @@ class Controller:
             return
 
         error = self.c.target_angle_deg - angle_deg
-        self.integral = max(
+        integral_candidate = max(
             self.c.integral_limit * -1.0,
             min(self.integral + error * self.c.period_ms / 1000.0,
                 self.c.integral_limit),
         )
-        unsaturated = self.c.kp * error + self.c.ki * self.integral - self.c.kd * gyro_dps
+        unsaturated = (
+            self.c.kp * error
+            + self.c.ki * integral_candidate
+            - self.c.kd * gyro_dps
+        )
         self.correction = max(-self.c.output_limit, min(unsaturated, self.c.output_limit))
+        if (
+            unsaturated == self.correction
+            or (self.correction >= self.c.output_limit and error < 0.0)
+            or (self.correction <= -self.c.output_limit and error > 0.0)
+        ):
+            self.integral = integral_candidate
         self.correction *= self.c.correction_sign
         p1 = max(0.0, min(99.0, self.c.base_pwm + self.correction))
         p2 = max(0.0, min(99.0, self.c.base_pwm - self.correction))
@@ -121,6 +137,15 @@ def run():
     check(command_map["s"] == "STATUS" and command_map["x"] == "NONE",
           "serial status/unknown command mapping is wrong")
 
+    # Bench firmware keeps the output gate closed; an ARM request alone must
+    # never create a PWM command when output_enabled is zero.
+    safe = Controller(Config(output_enabled=0))
+    safe.arm()
+    for now in range(10, 1100, 10):
+        safe.update(True, 0.0, 0.0, now)
+    check(not safe.armed and safe.pwm == (0, 0),
+          "output-disabled controller armed or generated PWM")
+
     c.arm()
 
     # Valid 10 ms samples must satisfy both gates before arming.
@@ -132,6 +157,25 @@ def run():
     check(c.pwm[0] < c.pwm[1], "mixer did not produce opposite PWM correction")
     check(c.pwm[0] > 0 and c.pwm[1] > 0, "valid attitude produced zero PWM")
     armed_pwm = c.pwm
+
+    # Boundary conditions: sample 49 and 999 ms are still locked; exact
+    # +/-45 degrees is allowed, while a value beyond it is a fault.
+    c = Controller(Config())
+    c.arm()
+    for now in range(10, 1000, 10):
+        c.update(True, 0.0, 0.0, now)
+    check(not c.armed, "controller armed before the 1000 ms boundary")
+    c.update(True, 45.0, 0.0, 1000)
+    check(c.armed and not c.faulted, "exact angle limit should be allowed")
+
+    # Large errors and rates must clamp the mixer to a legal 0..99 range.
+    saturated_config = Config(base_pwm=90.0)
+    c = Controller(saturated_config)
+    c.arm()
+    for now in range(10, 1000, 10):
+        c.update(True, 0.0, 0.0, now)
+    c.update(True, -45.0, 0.0, 1000)
+    check(c.pwm == (99, 60), "PWM upper clamp did not produce 99/60")
 
     # Explicit disarm must clear both outputs and the arm request.
     c.disarm()
@@ -153,11 +197,20 @@ def run():
         c.update(False, math.nan, math.nan, now)
     check(c.faulted and c.pwm == (0, 0), "sensor failure gate did not latch")
 
+    # A malformed numeric sample counts as a sensor failure, just like a
+    # failed I2C transaction.
+    c = Controller(Config())
+    c.arm()
+    for now in (10, 20, 30):
+        c.update(True, math.nan, math.inf, now)
+    check(c.faulted and c.pwm == (0, 0), "invalid numeric sample was accepted")
+
     print("offline controller checks: PASS")
     print("arm gate: 50 valid samples + 1000 ms")
     print("serial A/D/S decode policy: PASS")
     print("mixer sample at +5 deg: pwm1=%d pwm2=%d" % armed_pwm)
     print("disarm, angle limit, and 3-sample sensor fault: PASS")
+    print("boundary, PWM clamp, and invalid numeric sample: PASS")
 
 
 if __name__ == "__main__":

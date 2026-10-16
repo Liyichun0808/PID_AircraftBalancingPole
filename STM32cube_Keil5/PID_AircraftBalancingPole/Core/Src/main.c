@@ -75,15 +75,25 @@ static uint8_t Control_ReadMeasurement(float *angle_deg, float *gyro_dps)
 
 static void Control_PrintStatus(void)
 {
-  printf("healthy=%u armed=%u stable=%u output=%u\r\n",
+  uint16_t pwm1;
+  uint16_t pwm2;
+
+  BalanceController_GetPwm(&balance_controller, &pwm1, &pwm2);
+  printf("healthy=%u arm_req=%u armed=%u fault=%u stable=%u fail=%u output=%u\r\n",
          (unsigned)BalanceController_IsHealthy(&balance_controller),
+         (unsigned)BalanceController_IsArmRequested(&balance_controller),
          (unsigned)BalanceController_IsArmed(&balance_controller),
+         (unsigned)BalanceController_IsFaulted(&balance_controller),
          (unsigned)BalanceController_GetStableSamples(&balance_controller),
+         (unsigned)BalanceController_GetSensorFailureCount(&balance_controller),
          (unsigned)controller_config.output_enabled);
-  printf("angle_x_cdeg=%ld gyro_x_mdps=%ld pid_correction_milli=%ld\r\n",
+  printf("angle_x_cdeg=%ld gyro_x_mdps=%ld pid_correction_milli=%ld integral_milli=%ld pwm1=%u pwm2=%u\r\n",
          (long)BalanceController_GetAngleCdeg(&balance_controller),
          (long)BalanceController_GetGyroMdps(&balance_controller),
-         (long)BalanceController_GetCorrectionMilli(&balance_controller));
+         (long)BalanceController_GetCorrectionMilli(&balance_controller),
+         (long)BalanceController_GetIntegralMilli(&balance_controller),
+         (unsigned)pwm1,
+         (unsigned)pwm2);
 }
 
 static void Control_ProcessConsole(void)
@@ -148,7 +158,11 @@ int main(void)
   if (mpu6050_ok)
   {
     /* Keep the board still while the gyro bias is measured. */
-    MPU6050_Calibrate(100U);
+    if (!MPU6050_Calibrate(100U))
+    {
+      mpu6050_ok = 0U;
+      printf("mpu6050 calibration failed\r\n");
+    }
   }
 
   control_next_tick = HAL_GetTick() + CONTROL_PERIOD_MS;

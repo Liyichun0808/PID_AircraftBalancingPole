@@ -41,7 +41,7 @@ typedef struct {
 uint8_t MPU6050_Init(void);
 uint8_t MPU6050_ReadRaw(MPU6050_RawData *raw);
 uint8_t MPU6050_ReadAll(MPU6050_Data *data);
-void MPU6050_Calibrate(uint16_t samples);
+uint8_t MPU6050_Calibrate(uint16_t samples);
 float MPU6050_GetAngleX(void);
 float MPU6050_UpdateAngleX(const MPU6050_RawData *raw);
 float MPU6050_GetGyroX(void);

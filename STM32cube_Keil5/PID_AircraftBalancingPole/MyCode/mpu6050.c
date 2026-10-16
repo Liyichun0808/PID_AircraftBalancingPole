@@ -76,6 +76,11 @@ uint8_t MPU6050_Init(void)
 uint8_t MPU6050_ReadRaw(MPU6050_RawData *raw)
 {
     uint8_t buf[14];
+
+    if (raw == NULL)
+    {
+        return 0U;
+    }
     
     if (!MPU6050_ReadReg(MPU6050_ACCEL_XOUT_H, buf, 14)) {
         return 0;
@@ -113,7 +118,7 @@ uint8_t MPU6050_ReadAll(MPU6050_Data *data)
     return 1;
 }
 
-void MPU6050_Calibrate(uint16_t samples)
+uint8_t MPU6050_Calibrate(uint16_t samples)
 {
     MPU6050_RawData raw;
     float gx_sum = 0, gy_sum = 0, gz_sum = 0;
@@ -131,6 +136,12 @@ void MPU6050_Calibrate(uint16_t samples)
         HAL_Delay(10);
     }
     
+    if (samples == 0U || valid < (uint16_t)((samples + 1U) / 2U)) {
+        printf("Calibration failed: valid=%u/%u\r\n",
+               (unsigned)valid, (unsigned)samples);
+        return 0U;
+    }
+
     if (valid > 0) {
         gyro_x_offset = gx_sum / valid;
         gyro_y_offset = gy_sum / valid;
@@ -141,6 +152,8 @@ void MPU6050_Calibrate(uint16_t samples)
                (long)(gyro_y_offset * 1000.0f),
                (long)(gyro_z_offset * 1000.0f));
     }
+
+    return 1U;
 }
 
 float MPU6050_GetAngleX(void)
