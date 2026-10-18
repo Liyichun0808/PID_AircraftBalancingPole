@@ -21,3 +21,12 @@ after reset; output is possible only after a valid MPU6050 startup, 50 valid
 The runtime profile is intended for the assembled project after motor driver
 polarity, sensor axis, base PWM, and PID gains have been checked. Start with
 the HardwareTest HEX on a new PCB.
+
+## MotorPwmTest
+
+Use `PID_AircraftBalancingPole_MotorPwmTest.uvprojx` to check the PWM pins
+without an MPU6050. After reset it outputs fixed 1 kHz, 20% duty PWM on PA1
+(TIM2_CH2) and PA2 (TIM2_CH3). The profile does not initialize or use the
+MPU6050, I2C, PID, or UART application paths. Remove propellers and loads
+before powering any connected motor; connect motors only through the motor
+driver, never directly to STM32 pins.

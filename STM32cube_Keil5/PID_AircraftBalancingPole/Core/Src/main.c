@@ -1,24 +1,38 @@
 #include "main.h"
 #include "gpio.h"
 #include "tim.h"
+
+#if !defined(PROJECT_MOTOR_PWM_TEST_BUILD)
 #include "usart.h"
 #include "software_i2c.h"
 #include "mpu6050.h"
 #include "balance_controller.h"
 #include "control_console.h"
 #include <stdio.h>
+#endif
 
 #define CONTROL_PERIOD_MS       10U
 #define TIM2_PWM_PERIOD_COUNTS  100U
 
-#if defined(PROJECT_RUNTIME_BUILD)
+#if defined(PROJECT_MOTOR_PWM_TEST_BUILD)
+#define CONTROL_PROFILE_NAME     "motor-pwm-test"
+#define CONTROL_OUTPUT_ENABLED   1U
+#define CONTROL_AUTO_ARM         0U
+#elif defined(PROJECT_AUTOSTART_BUILD)
+#define CONTROL_PROFILE_NAME     "project-autostart"
+#define CONTROL_OUTPUT_ENABLED   1U
+#define CONTROL_AUTO_ARM         1U
+#elif defined(PROJECT_RUNTIME_BUILD)
 #define CONTROL_PROFILE_NAME     "project-runtime"
 #define CONTROL_OUTPUT_ENABLED   1U
+#define CONTROL_AUTO_ARM         0U
 #else
 #define CONTROL_PROFILE_NAME     "hardware-test"
 #define CONTROL_OUTPUT_ENABLED   0U
+#define CONTROL_AUTO_ARM         0U
 #endif
 
+#if !defined(PROJECT_MOTOR_PWM_TEST_BUILD)
 /* Keep the controller configuration in one place so it can be tuned without
    changing the sensor driver or the hardware output code. */
 static const BalanceController_Config controller_config =
@@ -45,9 +59,11 @@ static uint32_t control_next_tick;
 static uint32_t report_tick;
 static MPU6050_RawData latest_raw;
 static BalanceController balance_controller;
+#endif
 
 void SystemClock_Config(void);
 
+#if !defined(PROJECT_MOTOR_PWM_TEST_BUILD)
 static void Control_SetMotorPwm(void)
 {
   uint16_t pwm1;
@@ -126,6 +142,7 @@ static void Control_ProcessConsole(void)
       break;
   }
 }
+#endif
 
 int main(void)
 {
@@ -134,7 +151,9 @@ int main(void)
 
   MX_GPIO_Init();
   MX_TIM2_Init();
+#if !defined(PROJECT_MOTOR_PWM_TEST_BUILD)
   MX_USART1_UART_Init();
+#endif
 
   /* The compare registers are explicitly zeroed before PWM is started. */
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 0U);
@@ -145,6 +164,14 @@ int main(void)
     Error_Handler();
   }
 
+#if defined(PROJECT_MOTOR_PWM_TEST_BUILD)
+  /* Bench profile: fixed PWM output without MPU6050 or PID startup gates. */
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 20U);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 20U);
+  while (1)
+  {
+  }
+#else
   printf("control profile=%s output_enabled=%u\r\n",
          CONTROL_PROFILE_NAME,
          (unsigned)controller_config.output_enabled);
@@ -174,6 +201,16 @@ int main(void)
       printf("mpu6050 calibration failed\r\n");
     }
   }
+
+#if CONTROL_AUTO_ARM
+  if (mpu6050_ok)
+  {
+    /* Auto-start build: the normal sensor and startup gates still apply, but
+       no serial A command is required after programming the board. */
+    BalanceController_RequestArm(&balance_controller);
+    printf("auto-arm requested; keep mechanism clear\r\n");
+  }
+#endif
 
   control_next_tick = HAL_GetTick() + CONTROL_PERIOD_MS;
   report_tick = HAL_GetTick();
@@ -236,14 +273,17 @@ int main(void)
       }
     }
   }
+#endif
 }
 
+#if !defined(PROJECT_MOTOR_PWM_TEST_BUILD)
 int fputc(int ch, FILE *file)
 {
   (void)file;
   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1U, 100U);
   return ch;
 }
+#endif
 
 void SystemClock_Config(void)
 {
