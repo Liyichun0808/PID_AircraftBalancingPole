@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB,PROJECT_MOTOR_PWM_TEST_BUILD</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../MyCode;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;..\MyCode</IncludePath>
+              <IncludePath>../BuildProfiles/MotorPwmTest/Core/Inc;../BuildProfiles/MotorPwmTest/MyCode;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -397,17 +397,17 @@
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/main.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/main.c</FilePath>
             </File>
             <File>
               <FileName>gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/gpio.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/gpio.c</FilePath>
             </File>
             <File>
               <FileName>tim.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/tim.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/tim.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -463,7 +463,7 @@
             <File>
               <FileName>usart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/usart.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/usart.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -519,12 +519,12 @@
             <File>
               <FileName>stm32f1xx_it.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/stm32f1xx_it.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/stm32f1xx_it.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_msp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/stm32f1xx_hal_msp.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/stm32f1xx_hal_msp.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -762,7 +762,7 @@
             <File>
               <FileName>system_stm32f1xx.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/system_stm32f1xx.c</FilePath>
+              <FilePath>../BuildProfiles/MotorPwmTest/Core/Src/system_stm32f1xx.c</FilePath>
             </File>
           </Files>
         </Group>

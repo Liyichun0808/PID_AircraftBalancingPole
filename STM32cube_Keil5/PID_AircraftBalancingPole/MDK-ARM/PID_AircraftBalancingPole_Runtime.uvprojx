@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB,PROJECT_RUNTIME_BUILD</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../MyCode;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;..\MyCode</IncludePath>
+              <IncludePath>../BuildProfiles/Runtime/Core/Inc;../BuildProfiles/Runtime/MyCode;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -397,27 +397,27 @@
             <File>
               <FileName>software_i2c.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../MyCode/software_i2c.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/MyCode/software_i2c.c</FilePath>
             </File>
             <File>
               <FileName>mpu6050.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../MyCode/mpu6050.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/MyCode/mpu6050.c</FilePath>
             </File>
             <File>
               <FileName>pid_controller.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../MyCode/pid_controller.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/MyCode/pid_controller.c</FilePath>
             </File>
             <File>
               <FileName>balance_controller.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../MyCode/balance_controller.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/MyCode/balance_controller.c</FilePath>
             </File>
             <File>
               <FileName>control_console.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../MyCode/control_console.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/MyCode/control_console.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -427,17 +427,17 @@
             <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/main.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/main.c</FilePath>
             </File>
             <File>
               <FileName>gpio.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/gpio.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/gpio.c</FilePath>
             </File>
             <File>
               <FileName>tim.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/tim.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/tim.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -493,7 +493,7 @@
             <File>
               <FileName>usart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/usart.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/usart.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -549,12 +549,12 @@
             <File>
               <FileName>stm32f1xx_it.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/stm32f1xx_it.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/stm32f1xx_it.c</FilePath>
             </File>
             <File>
               <FileName>stm32f1xx_hal_msp.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/stm32f1xx_hal_msp.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/stm32f1xx_hal_msp.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -792,7 +792,7 @@
             <File>
               <FileName>system_stm32f1xx.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Core/Src/system_stm32f1xx.c</FilePath>
+              <FilePath>../BuildProfiles/Runtime/Core/Src/system_stm32f1xx.c</FilePath>
             </File>
           </Files>
         </Group>
