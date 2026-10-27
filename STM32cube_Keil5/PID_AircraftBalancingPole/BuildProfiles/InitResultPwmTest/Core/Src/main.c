@@ -198,7 +198,7 @@ int main(void)
 
     SW_I2C_Init();
     init_ok = MPU6050_Init();
-    compare = init_ok ? 30U : 40U;
+    compare = init_ok ? 30U : 0U;
 
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, compare);
     __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, compare);
