@@ -2,19 +2,15 @@
 #define __BALANCE_CONTROLLER_H
 
 #include <stdint.h>
-#include "pid_controller.h"
+#include "p_controller.h"
 
 typedef struct
 {
     float target_angle_deg;
     float kp;
-    float ki;
-    float kd;
     float output_limit;
-    float integral_limit;
     float base_pwm;
     float correction_sign;
-    uint32_t period_ms;
     uint32_t arm_delay_ms;
     uint16_t arm_samples;
     int32_t max_angle_cdeg;
@@ -24,7 +20,7 @@ typedef struct
 
 typedef struct
 {
-    PID_Controller pid;
+    P_Controller p_controller;
     BalanceController_Config config;
     int32_t angle_cdeg;
     int32_t gyro_mdps;
@@ -61,7 +57,6 @@ uint8_t BalanceController_GetSensorFailureCount(const BalanceController *control
 int32_t BalanceController_GetAngleCdeg(const BalanceController *controller);
 int32_t BalanceController_GetGyroMdps(const BalanceController *controller);
 int32_t BalanceController_GetCorrectionMilli(const BalanceController *controller);
-int32_t BalanceController_GetIntegralMilli(const BalanceController *controller);
 uint16_t BalanceController_GetStableSamples(const BalanceController *controller);
 
 #endif

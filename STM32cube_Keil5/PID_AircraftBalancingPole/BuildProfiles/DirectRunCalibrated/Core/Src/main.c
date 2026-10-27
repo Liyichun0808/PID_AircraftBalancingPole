@@ -60,13 +60,9 @@ static const BalanceController_Config controller_config =
 {
   .target_angle_deg = 0.0f,
   .kp = 1.0f,
-  .ki = 0.05f,
-  .kd = 0.08f,
   .output_limit = 30.0f,
-  .integral_limit = 100.0f,
   .base_pwm = 20.0f,
   .correction_sign = -1.0f,
-  .period_ms = CONTROL_PERIOD_MS,
   .arm_delay_ms = CONTROL_DIRECT_RUN ? 0U : 1000U,
   .arm_samples = CONTROL_DIRECT_RUN ? 1U : 50U,
   .max_angle_cdeg = 4500,

@@ -1,6 +1,6 @@
 # 基于 PID 算法的双电机平衡杆
 
-面向 STM32F103C8 的固件仓库，保留五个阶段测试版本和一个完整 PID 调参基线。
+面向 STM32F103C8 的固件仓库，保留五个阶段测试版本和一个 P 控制运行基线。
 六个 Keil 工程各自引用独立的应用源码，公共 STM32 HAL、CMSIS 驱动和启动汇编共享。
 源码、头文件、启动文件及工程引用的公共驱动均已纳入 Git；不是只上传 `.uvprojx` 工程入口。
 
@@ -52,11 +52,11 @@
 - PC13 第一组先闪 1 下作为加速度标记，再显示重力主轴；第二组先闪 2 下作为角速度标记，再显示 2 秒动作窗口内角速度峰值最大的轴。
 - 轴编号 X=1、Y=2、Z=3；轴编号后持续亮 400 ms 表示正值，1400 ms 表示负值；闪 4 下表示未达到主轴/转动判断阈值，闪 8 下表示总线或传感器初始化/读取失败。
 
-### 版本 6：完整 DirectRun PID，后续调参基线
+### 版本 6：DirectRunCalibrated P 控制版，后续调参基线
 
 - 工程：[PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx](STM32cube_Keil5/PID_AircraftBalancingPole/MDK-ARM/PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx)。
 - 源码：[BuildProfiles/DirectRunCalibrated](STM32cube_Keil5/PID_AircraftBalancingPole/BuildProfiles/DirectRunCalibrated)。
-- 使用 MPU6500 WHO_AM_I `0x70` 和实测安装轴向，完成姿态估计、PID、双电机差动输出和故障关断。
+- 使用 MPU6500 WHO_AM_I `0x70` 和实测安装轴向，完成姿态估计、P 控制、双电机差动输出和故障关断。
 - 上电自动执行初始化、校准及使能，无需串口发送 `A`，主程序不初始化 UART、不使用命令接口。
 - 后续调参修改这一版；前五版用于定位硬件和传感器问题。
 
@@ -80,7 +80,7 @@ PID_AircraftBalancingPole/
         │   ├── WhoAmITest/                # 3. LED 识别传感器型号
         │   ├── InitFailPwmTest/           # 4. MPU6500 0x70 ID 验证
         │   ├── SensorAxisTest/            # 5. 实际 XYZ 轴向测试
-        │   └── DirectRunCalibrated/       # 6. 完整 PID 调参基线
+        │   └── DirectRunCalibrated/       # 6. P 控制运行基线
         ├── Drivers/                       # 六个工程共享的厂商驱动
         │   ├── CMSIS/
         │   │   ├── Include/              # Cortex-M 核心和编译器适配头文件
@@ -116,7 +116,8 @@ PID_AircraftBalancingPole/
 ### 每个 BuildProfiles 版本内的全部应用文件
 
 下列 `<版本名>` 分别代表前述六个目录，不是需要创建的实际目录。
-每套都包含 6 个核心头文件、7 个核心源文件和 15 个功能模块文件，共 28 个文件。
+每套都包含 6 个核心头文件、7 个核心源文件和 15 个功能模块文件，共 28 个文件。版本 6 使用
+`p_controller.c/.h` 替代前五套快照中的 `pid_controller.c/.h`。
 
 ```text
 BuildProfiles/<版本名>/
@@ -141,8 +142,8 @@ BuildProfiles/<版本名>/
     ├── software_i2c.h               # 软件 I2C 引脚、宏及接口
     ├── mpu6050.c                    # MPU 寄存器访问、采样、校准和姿态融合
     ├── mpu6050.h                    # MPU 数据类型和寄存器定义
-    ├── pid_controller.c             # P/I/D 计算、积分与输出限幅
-    ├── pid_controller.h             # PID 状态及接口
+    ├── p_controller.c               # DirectRunCalibrated 使用的 P 控制
+    ├── p_controller.h               # P 控制参数和接口
     ├── balance_controller.c         # 使能、故障保护及两路 PWM 混控
     ├── balance_controller.h         # 平衡控制参数、状态及接口
     ├── control_console.c            # 保留的串口命令模块
@@ -154,15 +155,18 @@ BuildProfiles/<版本名>/
     └── OLED_Font.h                  # OLED 字库
 ```
 
+版本 6 使用上面列出的 `p_controller.c/.h`；前五套快照在相同位置使用
+`pid_controller.c/.h`，两组文件互相替代，每套仍为 28 个应用文件。
+
 ### 文件存在、参加编译和实际运行的区别
 
 - 六套目录保留各自的源码快照，所以测试版目录里也可能含 PID、OLED 等模块文件；不能只凭目录中存在文件推断它会运行。
 - `.uvprojx` 的源文件列表决定哪些 `.c` 参加编译，工程宏和调用关系决定哪些代码实际运行。
 - `MotorPwmTest` 不把 `MyCode` 源文件加入工程；只执行固定 PWM 分支。
 - 第 2、4 版工程列表包含软件 I2C、MPU、PID、平衡控制和命令模块，但当前主程序只执行各自的初始化/ID 检查测试分支。
-- 第 3、5、6 版工程列表包含软件 I2C、MPU、PID、平衡控制模块；第 3、5 版不会进入电机控制流程。
+- 第 3、5、6 版工程列表包含软件 I2C、MPU、控制器和平衡控制模块；第 3、5 版不会进入电机控制流程，第 6 版使用 P 控制。
 - 六个工程均没有把 `OLED.c` 或 `hardware_i2c.c` 加入编译；保留这些源文件不表示需要 OLED，也不表示当前使用硬件 I2C。
-- `usart.c` 仍在工程源文件列表中；完整 PID 基线没有调用 UART 初始化或命令接口，无需串口输入才能启动。
+- `usart.c` 仍在工程源文件列表中；第 6 版没有调用 UART 初始化或命令接口，无需串口输入才能启动。
 - 实际编译的系统文件来自对应版本的 `Core/Src/system_stm32f1xx.c`；`Drivers/CMSIS/.../Source/Templates/` 下的是厂商模板。
 
 ## 3. 工程与子文件的引用关系
@@ -194,12 +198,12 @@ MDK-ARM/PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx
 - 软件 I2C：PB6 为 SCL，PB7 为 SDA；本仓库保留的六版均使用软件 I2C 路径。
 - PC13：第 3、5 版的 LED 指示，低电平点亮。
 - PB5：保留的传感器 INT 引脚定义；完整基线通过主循环定时读取传感器，不依靠 MPU 外部中断采样。
-- PA9/PA10：保留 USART1 TX/RX 引脚定义，完整 PID 运行无需串口。
+- PA9/PA10：保留 USART1 TX/RX 引脚定义，第 6 版运行无需串口。
 - 时钟：外部 HSE 按 8 MHz 配置，PLL 倍频 9，系统时钟 72 MHz，APB1 为 36 MHz，TIM2 时钟为 72 MHz。
 - TIM2：预分频 `720-1`，自动重装载 `100-1`，PWM 频率为 `72 MHz / 720 / 100 = 1 kHz`。
 - 两路输出为占空比可调的 PWM 方波；CCR 写入 20/30 分别对应 20%/30%，CCR 为 0 时没有高电平脉冲。
 
-## 5. 完整 PID 基线的执行架构
+## 5. DirectRunCalibrated P 控制版的执行架构
 
 ```text
 上电 / 复位
@@ -209,7 +213,7 @@ MDK-ARM/PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx
   → 唤醒传感器并写入采样、滤波和量程配置
   → 采集 100 组数据校准陀螺仪零偏与初始姿态，约 1 秒
   → 校准成功：两路先输出基础 PWM 20%，自动请求使能
-  → 每 10 ms 读取一次数据：姿态融合 → PID → 保护/混控 → 更新 CCR2/CCR3
+  → 每 10 ms 读取一次数据：姿态融合 → P 控制 → 保护/混控 → 更新 CCR2/CCR3
 ```
 
 初始化或校准失败时保持 0% 输出。上电校准期间应让杆体竖直、静止；程序把采样得到的
@@ -221,25 +225,34 @@ MDK-ARM/PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx
 - `software_i2c.c`：完成 I2C 起止、应答和寄存器读写。
 - `mpu6050.c`：虽然文件名保留 MPU6050，版本 6 的识别目标实际为 MPU6500 `0x70`；每次读取加速度 XYZ、温度原始值和角速度 XYZ。
 - 倾角采用实测的 X/Z 平面：`atan2f(-AccelZ, -AccelX)` 减去上电校准角度，角速度采用去零偏后的 `Gyro Y`，互补滤波系数为 `0.96`。
-- `pid_controller.c`：P、I、D 三项均参与计算，D 项使用负的实测角速度，而非相邻倾角误差直接差分；含积分限幅和输出饱和下的积分约束。
+- `p_controller.c`：只计算比例项 `u = Kp × (目标角度 − 当前角度)`，再按 `output_limit` 限幅；不累计误差，也不读取角速度作为 D 项。
 - `balance_controller.c`：管理自动使能、无效数据计数、倾角保护和两路 PWM 分配。
 - `main.c`：组织固定周期采样和模块调用，将控制结果写入 TIM2 硬件比较寄存器。
+
+### PID 三项原理和参数作用
+
+令误差 `e = 目标值 − 测量值`。P、I、D 是三种控制作用，可以单独使用，也可以组合成 PI、PD 或 PID：
+
+- **P（比例）**：`uP = Kp × e`。误差越大，修正越大，直接、响应快；`Kp` 太小会感觉软、回正慢，太大会过冲、来回摆动，也会放大测量噪声。P 控制通常会留下静差，因为误差接近零时修正也接近零。
+- **I（积分）**：`uI = Ki × ∫e dt`。累积持续存在的误差，用来消除负载或电机差异造成的静差；`Ki` 太大会累积过头，产生过冲和长时间恢复，输出饱和时还可能积分饱和，因此完整 PID 会做积分限幅和抗饱和。
+- **D（微分）**：`uD = Kd × de/dt`。依据误差变化趋势提前制动，可增加阻尼、减少过冲；`Kd` 太大或测量噪声较多时会让输出抖动。此项目完整 PID 快照在目标固定时以负角速度作为误差变化率，避免直接差分带噪的倾角。
+
+这版只使用 P 项，控制修正按比例系数与角度误差计算，不含 Ki/Kd、积分状态或微分项。陀螺仪仍参与姿态互补滤波，但不直接参与控制器的 D 阻尼；相较完整 PID，P-only 更适合逐步确认方向和比例响应，抗扰和抑制摆动能力较弱。
 
 ### 当前参数与混控
 
 参数集中在版本 6 的 `Core/Src/main.c` 中的 `controller_config`：
 
 - `target_angle_deg = 0.0`：目标为上电校准得到的零度姿态。
-- `kp = 1.0`、`ki = 0.05`、`kd = 0.08`：当前 P/I/D 参数。
+- `kp = 1.0`：比例增益；角度误差单位为度，修正量单位为 PWM 占空比百分点，因此当前增益相当于每偏 1° 给出 1 个百分点的修正，最终仍受输出限幅约束。
 - `base_pwm = 20.0`：两路基础占空比。
-- `output_limit = 30.0`：PID 修正量限幅。
-- `integral_limit = 100.0`：积分状态限幅。
+- `output_limit = 30.0`：P 修正量限幅为 ±30 个百分点。
 - `correction_sign = -1.0`：按已实测的电机增减方向设置。
-- `period_ms = 10`：控制周期。
+- `CONTROL_PERIOD_MS = 10`：控制周期；它不进入 P 公式，但决定传感器更新和控制刷新频率。
 - `max_angle_cdeg = 4500`：相对校准基准的倾角超过正负 45° 时关断。
 - `sensor_failure_limit = 3`：连续 1、2 次无效采样保持上一次输出；第 3 次清零两路并锁存故障，有效采样会清零失败计数。
 
-混控先计算 `correction = correction_sign × PID输出`，再分配：
+混控先计算 `correction = correction_sign × P输出`，再分配：
 
 ```text
 PWM1 = 限幅并取整(base_pwm + correction)
@@ -257,7 +270,7 @@ PWM2 = 限幅并取整(base_pwm - correction)
 3. 在 `MDK-ARM/` 打开需要的 `.uvprojx`；完整功能和后续调参请选择第 6 版 `DirectRunCalibrated`。
 4. 执行 Rebuild，确认使用的是所选版本自己的源文件与输出目录。
 5. 在 Keil 中选择实际使用的下载器并设置调试/Flash 下载，编译后烧录到 PCB。
-6. 运行完整 PID 版时，上电先保持杆体竖直静止完成校准，再进行方向检查和参数调整。
+6. 运行 P 控制版时，上电先保持杆体竖直静止完成校准，再进行方向检查和参数调整；逐步增加 `kp`，确认输出方向正确后再观察能否稳定。
 
 六个工程的输出目录分别为 `MotorPwmTest/`、`InitResultPwmTest/`、`ProjectWhoAmITest/`、
 `InitFailPwmTest/`、`ProjectSensorAxisTest/`、`ProjectDirectRunCalibrated/`，均位于 `MDK-ARM/` 下。
@@ -276,5 +289,5 @@ PWM2 = 限幅并取整(base_pwm - correction)
 - HAL/CMSIS 公共驱动、实际引用的启动汇编和保留的调试配置均已上传。
 - 本次核验确认的是上传完整性和引用路径；不等同于重新通过 Keil 编译或重新完成实物验证。
 
-本次 README 补充不改变固件源码、引脚、PID 参数或控制逻辑。首次检查电机方向时，
+本次 README 补充记录了固件 P 控制改动，没有改变引脚或其他硬件配置。首次检查电机方向时，
 应先拆除螺旋桨并固定杆体；第 1、2、4 版可能在启动时直接输出固定 PWM。

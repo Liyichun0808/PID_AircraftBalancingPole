@@ -405,9 +405,9 @@
               <FilePath>../BuildProfiles/DirectRunCalibrated/MyCode/mpu6050.c</FilePath>
             </File>
             <File>
-              <FileName>pid_controller.c</FileName>
+              <FileName>p_controller.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../BuildProfiles/DirectRunCalibrated/MyCode/pid_controller.c</FilePath>
+              <FilePath>../BuildProfiles/DirectRunCalibrated/MyCode/p_controller.c</FilePath>
             </File>
             <File>
               <FileName>balance_controller.c</FileName>

@@ -40,7 +40,6 @@ static void Balance_Disarm(BalanceController *controller, uint8_t latch_fault)
     controller->arm_requested = 0U;
     controller->stable_samples = 0U;
     controller->correction_milli = 0;
-    PID_Reset(&controller->pid);
     Balance_ClearOutput(controller);
     if (latch_fault != 0U)
     {
@@ -53,14 +52,10 @@ void BalanceController_Init(BalanceController *controller,
                             uint32_t now_ms)
 {
     controller->config = *config;
-    PID_Init(&controller->pid,
-             config->kp,
-             config->ki,
-             config->kd,
-             -config->output_limit,
-             config->output_limit,
-             -config->integral_limit,
-             config->integral_limit);
+    P_Init(&controller->p_controller,
+           config->kp,
+           -config->output_limit,
+           config->output_limit);
     controller->angle_cdeg = 0;
     controller->gyro_mdps = 0;
     controller->sensor_failure_count = 0U;
@@ -144,16 +139,12 @@ void BalanceController_Update(BalanceController *controller,
     if (controller->armed == 0U)
     {
         Balance_ClearOutput(controller);
-        PID_Reset(&controller->pid);
         return;
     }
 
-    correction = PID_UpdateWithRate(&controller->pid,
-                                    controller->config.target_angle_deg,
-                                    angle_deg,
-                                    gyro_dps,
-                                    (float)controller->config.period_ms /
-                                    1000.0f);
+    correction = P_Update(&controller->p_controller,
+                          controller->config.target_angle_deg,
+                          angle_deg);
     correction *= controller->config.correction_sign;
     controller->correction_milli = (int32_t)(correction * 1000.0f);
     controller->pwm1 = Balance_PwmCount(controller->config.base_pwm + correction);
@@ -206,11 +197,6 @@ int32_t BalanceController_GetGyroMdps(const BalanceController *controller)
 int32_t BalanceController_GetCorrectionMilli(const BalanceController *controller)
 {
     return controller->correction_milli;
-}
-
-int32_t BalanceController_GetIntegralMilli(const BalanceController *controller)
-{
-    return (int32_t)(controller->pid.integral * 1000.0f);
 }
 
 uint16_t BalanceController_GetStableSamples(const BalanceController *controller)
