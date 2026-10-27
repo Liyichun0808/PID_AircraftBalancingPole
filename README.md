@@ -1,10 +1,11 @@
 # 基于 PID 算法的双电机平衡杆
 
-面向 STM32F103C8 的固件仓库，保留五个阶段测试版本和一个 P 控制运行基线。
-六个 Keil 工程各自引用独立的应用源码，公共 STM32 HAL、CMSIS 驱动和启动汇编共享。
+面向 STM32F103C8 的固件仓库，保留五个阶段测试版本、一个 P 控制运行基线和一个 Keil Watch 诊断版。
+前六个 Keil 工程各自引用独立应用源码；第七版使用独立测试入口，复用第六版传感器及控制器。
+公共 STM32 HAL、CMSIS 驱动和启动汇编共享。
 源码、头文件、启动文件及工程引用的公共驱动均已纳入 Git；不是只上传 `.uvprojx` 工程入口。
 
-## 1. 六个版本及打开入口
+## 1. 七个版本及打开入口
 
 所有工程入口位于 `STM32cube_Keil5/PID_AircraftBalancingPole/MDK-ARM/`。
 下面的工程和源码链接均指向仓库内的实际路径。
@@ -60,13 +61,22 @@
 - 上电自动执行初始化、校准及使能，无需串口发送 `A`，主程序不初始化 UART、不使用命令接口。
 - 后续调参修改这一版；前五版用于定位硬件和传感器问题。
 
+### 版本 7：Keil Watch 倾角和 P 控制诊断（电机输出关闭）
+
+- 工程：[PID_AircraftBalancingPole_KeilWatchTest.uvprojx](STM32cube_Keil5/PID_AircraftBalancingPole/MDK-ARM/PID_AircraftBalancingPole_KeilWatchTest.uvprojx)。
+- 测试源码与操作步骤：[BuildProfiles/KeilWatchTest](STM32cube_Keil5/PID_AircraftBalancingPole/BuildProfiles/KeilWatchTest/README.md)。
+- 在 Keil Watch 展开全局 `volatile` 结构体 `g_keil_watch`，可读相对倾角、Y 角速度、P 修正、计算 PWM、实际 CCR 和保护状态。
+- 两路实际输出始终为 0，软件控制器正常计算；用 `g_keil_capture_request=1/2/3` 保存竖直、向 PWM1、向 PWM2 的三组数据到 `g_keil_samples[0..2]`。
+- 本版只检查传感器方向、混控和保护，不测实际推力。独立 main.c 复用 DirectRunCalibrated 的底层源码，未修改运行版。
+
 > 地址说明：`0x75` 是 WHO_AM_I 寄存器地址，`0x70` 是 MPU6500 返回的芯片 ID，
 > **不是 I2C 设备地址**。设备的 7 位通信地址仍为 `0x68` 或 `0x69`，取决于 AD0。
 > 软件 I2C 底层还会使用移位后的地址字节，不能把这些常量直接全部替换为 `0x70`。
 
 ## 2. 仓库完整目录架构
 
-以下展示 GitHub 当前分支的目录结构。本机尚未跟踪的旧工程、仿真和编译产物不属于此结构。
+以下主体展示原六个基线工程的目录结构；新增第七版的入口与共享依赖见版本 7 说明。
+本机尚未跟踪的旧工程、仿真和编译产物不属于此结构。
 六个应用目录的文件布局相同，在下一节逐一列出公共布局及各文件职责；厂商驱动按实际子目录列出。
 
 ```text
@@ -290,12 +300,13 @@ PWM2 = 限幅并取整(base_pwm2 - correction_gain2 × correction)
 
 六个工程的输出目录分别为 `MotorPwmTest/`、`InitResultPwmTest/`、`ProjectWhoAmITest/`、
 `InitFailPwmTest/`、`ProjectSensorAxisTest/`、`ProjectDirectRunCalibrated/`，均位于 `MDK-ARM/` 下。
+第七版诊断工程输出到 `ProjectKeilWatchTest/`。
 这些是编译时生成的目录；仓库不提交 HEX、AXF、OBJ、MAP、日志或个人 Keil 窗口设置。
 当前仓库不包含 CubeMX `.ioc` 和 Proteus 仿真文件，使用已保存的 Keil 工程编译。
 
 ## 7. 上传完整性与检查范围
 
-2026-10-27 对 GitHub `master` 的文件树及六个工程的 XML 引用进行了检查：
+以下为增加 Keil Watch 诊断版之前，2026-10-27 对 GitHub `master` 原六个工程所做的历史检查：
 
 - 六个 `.uvprojx` 工程均已上传且可解析。
 - 六套应用源码各 28 个文件，合计 168 个，包含所有应用 `.c`/`.h` 和字库头文件。
