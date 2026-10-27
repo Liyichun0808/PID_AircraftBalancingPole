@@ -7,6 +7,10 @@
 #include "keil_watch_test.h"
 
 #define CONTROL_PERIOD_MS 10U
+#define SENSOR_STARTUP_MS  200U
+#define SENSOR_RETRY_MS    500U
+#define LED_PORT           GPIOC
+#define LED_PIN            GPIO_PIN_13
 
 /* Match the DirectRunCalibrated P controller for command comparison.
    output_enabled only arms the SOFTWARE controller here. No controller
@@ -32,6 +36,8 @@ volatile KeilWatchData g_keil_watch;
 volatile KeilWatchData g_keil_samples[3];
 volatile uint32_t g_keil_capture_request;
 volatile uint32_t g_keil_capture_result;
+volatile int16_t sensor_accel_raw[3];
+volatile int16_t sensor_gyro_raw[3];
 
 static BalanceController balance_controller;
 static MPU6050_RawData latest_raw;
@@ -39,6 +45,33 @@ static uint32_t previous_sample_tick;
 static uint8_t have_previous_sample;
 
 void SystemClock_Config(void);
+
+static void Watch_ReadBusLines(void)
+{
+    g_keil_watch.scl_high =
+        HAL_GPIO_ReadPin(I2C_SCL_PORT, I2C_SCL_PIN) == GPIO_PIN_SET ? 1U : 0U;
+    g_keil_watch.sda_high =
+        HAL_GPIO_ReadPin(I2C_SDA_PORT, I2C_SDA_PIN) == GPIO_PIN_SET ? 1U : 0U;
+}
+
+static void Watch_InitPins(void)
+{
+    GPIO_InitTypeDef gpio = {0};
+
+    /* Mirror SensorAxisTest's PC13 initialization before touching the MPU. */
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
+    gpio.Pin = LED_PIN;
+    gpio.Mode = GPIO_MODE_OUTPUT_PP;
+    gpio.Pull = GPIO_NOPULL;
+    gpio.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LED_PORT, &gpio);
+
+    /* Keep PA1/PA2 low while sensor startup runs before TIM2 initialization. */
+    HAL_GPIO_WritePin(GPIOA, PWM1_Pin | PWM2_Pin, GPIO_PIN_RESET);
+    gpio.Pin = PWM1_Pin | PWM2_Pin;
+    HAL_GPIO_Init(GPIOA, &gpio);
+}
 
 static void Watch_KeepMotorsOff(void)
 {
@@ -98,7 +131,8 @@ static void Watch_Capture(void)
     {
         g_keil_capture_result = 2U;
     }
-    else if (g_keil_watch.sample_valid == 0U || g_keil_watch.armed == 0U ||
+    else if (g_keil_watch.sample_valid == 0U || g_keil_watch.sensor_healthy == 0U ||
+             g_keil_watch.armed == 0U ||
              g_keil_watch.faulted != 0U)
     {
         g_keil_capture_result = 3U;
@@ -140,6 +174,12 @@ static void Watch_Sample(uint32_t now)
         g_keil_watch.gyro_x_raw = latest_raw.gyro_x;
         g_keil_watch.gyro_y_raw = latest_raw.gyro_y;
         g_keil_watch.gyro_z_raw = latest_raw.gyro_z;
+        sensor_accel_raw[0] = latest_raw.accel_x;
+        sensor_accel_raw[1] = latest_raw.accel_y;
+        sensor_accel_raw[2] = latest_raw.accel_z;
+        sensor_gyro_raw[0] = latest_raw.gyro_x;
+        sensor_gyro_raw[1] = latest_raw.gyro_y;
+        sensor_gyro_raw[2] = latest_raw.gyro_z;
     }
     else
     {
@@ -150,28 +190,22 @@ static void Watch_Sample(uint32_t now)
     BalanceController_Update(&balance_controller, valid, angle_deg, gyro_dps, now);
     Watch_PublishController();
     Watch_KeepMotorsOff();
+    Watch_ReadBusLines();
     g_keil_watch.sample_count++;
     Watch_Capture();
 }
 
-int main(void)
+static void Watch_TrySensorInit(void)
 {
-    uint32_t next_tick;
-
-    HAL_Init();
-    SystemClock_Config();
-    MX_GPIO_Init();
-    MX_TIM2_Init();
-    Watch_KeepMotorsOff();
-    if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) != HAL_OK ||
-        HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
-    {
-        Error_Handler();
-    }
-
-    BalanceController_Init(&balance_controller, &controller_config, HAL_GetTick());
+    g_keil_watch.init_attempts++;
+    g_keil_watch.sample_valid = 0U;
+    g_keil_watch.mpu_ok = 0U;
+    g_keil_watch.calibrated = 0U;
     g_keil_watch.stage = KEIL_STAGE_I2C;
+    /* Same bus setup, readiness gate, device identification and register
+       writes as SensorAxisTest. Never bypass a failed bus check. */
     SW_I2C_Init();
+    Watch_ReadBusLines();
     if (!SW_I2C_BusReady())
     {
         g_keil_watch.stage = KEIL_STAGE_BUS_ERROR;
@@ -194,13 +228,50 @@ int main(void)
             }
             else
             {
+                BalanceController_Init(&balance_controller, &controller_config,
+                                       HAL_GetTick());
                 BalanceController_RequestArm(&balance_controller);
+                have_previous_sample = 0U;
                 g_keil_watch.stage = KEIL_STAGE_RUNNING;
             }
         }
     }
+    Watch_ReadBusLines();
+    if (g_keil_watch.calibrated == 0U)
+    {
+        g_keil_watch.last_init_error = g_keil_watch.stage;
+    }
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN,
+                     g_keil_watch.calibrated != 0U ? GPIO_PIN_RESET : GPIO_PIN_SET);
+}
+
+int main(void)
+{
+    uint32_t next_tick;
+    uint32_t next_init_tick;
+
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    Watch_InitPins();
+    BalanceController_Init(&balance_controller, &controller_config, HAL_GetTick());
+
+    /* SensorAxisTest initializes the sensor before any PWM peripheral.
+       Add a short power-up settling time, then follow that same order. */
+    g_keil_watch.stage = KEIL_STAGE_I2C;
+    HAL_Delay(SENSOR_STARTUP_MS);
+    Watch_TrySensorInit();
+
+    MX_TIM2_Init();
+    Watch_KeepMotorsOff();
+    if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) != HAL_OK ||
+        HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) != HAL_OK)
+    {
+        Error_Handler();
+    }
 
     next_tick = HAL_GetTick() + CONTROL_PERIOD_MS;
+    next_init_tick = HAL_GetTick() + SENSOR_RETRY_MS;
     while (1)
     {
         uint32_t now = HAL_GetTick();
@@ -221,7 +292,17 @@ int main(void)
             }
             else
             {
+                Watch_ReadBusLines();
                 Watch_Capture();
+                /* Retry initialization only. Runtime safety faults stay latched
+                   and cannot trigger automatic recalibration or re-arming. */
+                if ((int32_t)(now - next_init_tick) >= 0)
+                {
+                    Watch_TrySensorInit();
+                    Watch_KeepMotorsOff();
+                    next_init_tick = HAL_GetTick() + SENSOR_RETRY_MS;
+                    next_tick = HAL_GetTick() + CONTROL_PERIOD_MS;
+                }
             }
         }
     }

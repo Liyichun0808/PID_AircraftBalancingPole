@@ -54,10 +54,18 @@ typedef struct
     int16_t gyro_x_raw;
     int16_t gyro_y_raw;
     int16_t gyro_z_raw;
+    uint32_t init_attempts;
+    /* Most recent failed initialization stage; retained after a successful retry. */
+    uint32_t last_init_error;
+    uint32_t scl_high;
+    uint32_t sda_high;
 } KeilWatchData;
 
 extern volatile KeilWatchData g_keil_watch;
 extern volatile KeilWatchData g_keil_samples[3];
+/* Same raw-data Watch names as the known-working SensorAxisTest. */
+extern volatile int16_t sensor_accel_raw[3];
+extern volatile int16_t sensor_gyro_raw[3];
 /* Write 1/2/3 to capture upright / toward PWM1 / toward PWM2. */
 extern volatile uint32_t g_keil_capture_request;
 /* 0 = idle, 1 = saved, 2 = bad slot, 3 = not ready; request clears on handling. */

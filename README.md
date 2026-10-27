@@ -1,7 +1,7 @@
 # 基于 PID 算法的双电机平衡杆
 
 面向 STM32F103C8 的固件仓库，保留五个阶段测试版本、一个 P 控制运行基线和一个 Keil Watch 诊断版。
-前六个 Keil 工程各自引用独立应用源码；第七版使用独立测试入口，复用第六版传感器及控制器。
+前六个 Keil 工程各自引用独立应用源码；第七版使用独立测试入口，复用第五版 GPIO/I2C 和第六版 Y 轴姿态及控制器。
 公共 STM32 HAL、CMSIS 驱动和启动汇编共享。
 源码、头文件、启动文件及工程引用的公共驱动均已纳入 Git；不是只上传 `.uvprojx` 工程入口。
 
@@ -67,7 +67,8 @@
 - 测试源码与操作步骤：[BuildProfiles/KeilWatchTest](STM32cube_Keil5/PID_AircraftBalancingPole/BuildProfiles/KeilWatchTest/README.md)。
 - 在 Keil Watch 展开全局 `volatile` 结构体 `g_keil_watch`，可读相对倾角、Y 角速度、P 修正、计算 PWM、实际 CCR 和保护状态。
 - 两路实际输出始终为 0，软件控制器正常计算；用 `g_keil_capture_request=1/2/3` 保存竖直、向 PWM1、向 PWM2 的三组数据到 `g_keil_samples[0..2]`。
-- 本版只检查传感器方向、混控和保护，不测实际推力。独立 main.c 复用 DirectRunCalibrated 的底层源码，未修改运行版。
+- 本版按已测通的 SensorAxisTest 启动顺序及编译优化设置组织 GPIO/I2C，保留 DirectRunCalibrated 的实测 Y 轴融合和 P 控制；初始化失败会自动重试，Watch 显示总线电平和尝试次数。
+- 本版只检查传感器方向、混控和保护，不测实际推力；未修改两个原版的源码。
 
 > 地址说明：`0x75` 是 WHO_AM_I 寄存器地址，`0x70` 是 MPU6500 返回的芯片 ID，
 > **不是 I2C 设备地址**。设备的 7 位通信地址仍为 `0x68` 或 `0x69`，取决于 AD0。
