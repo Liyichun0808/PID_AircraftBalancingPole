@@ -61,7 +61,11 @@ static const BalanceController_Config controller_config =
   .target_angle_deg = 0.0f,
   .kp = 1.0f,
   .output_limit = 30.0f,
-  .base_pwm = 20.0f,
+  /* Calibrate base commands and correction gains independently on hardware. */
+  .base_pwm1 = 20.0f,
+  .base_pwm2 = 20.0f,
+  .correction_gain1 = 1.0f,
+  .correction_gain2 = 1.0f,
   .correction_sign = -1.0f,
   .arm_delay_ms = CONTROL_DIRECT_RUN ? 0U : 1000U,
   .arm_samples = CONTROL_DIRECT_RUN ? 1U : 50U,
@@ -94,6 +98,16 @@ static void Control_SetMotorPwm(void)
     pwm2 = TIM2_PWM_PERIOD_COUNTS - 1U;
   }
 
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm1);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm2);
+}
+
+static void Control_SetBaseMotorPwm(void)
+{
+  uint16_t pwm1;
+  uint16_t pwm2;
+
+  BalanceController_GetBasePwm(&controller_config, &pwm1, &pwm2);
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, pwm1);
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, pwm2);
 }
@@ -134,10 +148,7 @@ int main(void)
   __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3, 20U);
 #elif defined(PROJECT_DIRECT_RUN_BUILD) && !defined(PROJECT_DIRECT_RUN_CALIBRATED_BUILD)
   /* Apply the configured base command immediately at power-up. */
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2,
-                        (uint32_t)controller_config.base_pwm);
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3,
-                        (uint32_t)controller_config.base_pwm);
+  Control_SetBaseMotorPwm();
 #endif
 
 #if defined(PROJECT_MOTOR_PWM_TEST_BUILD)
@@ -186,10 +197,7 @@ int main(void)
     }
     else if (CONTROL_CALIBRATED_START)
     {
-      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2,
-                            (uint32_t)controller_config.base_pwm);
-      __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_3,
-                            (uint32_t)controller_config.base_pwm);
+      Control_SetBaseMotorPwm();
     }
   }
 

@@ -9,7 +9,10 @@ typedef struct
     float target_angle_deg;
     float kp;
     float output_limit;
-    float base_pwm;
+    float base_pwm1;
+    float base_pwm2;
+    float correction_gain1;
+    float correction_gain2;
     float correction_sign;
     uint32_t arm_delay_ms;
     uint16_t arm_samples;
@@ -49,6 +52,9 @@ void BalanceController_Update(BalanceController *controller,
 void BalanceController_GetPwm(const BalanceController *controller,
                               uint16_t *pwm1,
                               uint16_t *pwm2);
+void BalanceController_GetBasePwm(const BalanceController_Config *config,
+                                  uint16_t *pwm1,
+                                  uint16_t *pwm2);
 uint8_t BalanceController_IsArmed(const BalanceController *controller);
 uint8_t BalanceController_IsArmRequested(const BalanceController *controller);
 uint8_t BalanceController_IsFaulted(const BalanceController *controller);

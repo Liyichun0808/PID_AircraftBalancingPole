@@ -147,8 +147,12 @@ void BalanceController_Update(BalanceController *controller,
                           angle_deg);
     correction *= controller->config.correction_sign;
     controller->correction_milli = (int32_t)(correction * 1000.0f);
-    controller->pwm1 = Balance_PwmCount(controller->config.base_pwm + correction);
-    controller->pwm2 = Balance_PwmCount(controller->config.base_pwm - correction);
+    controller->pwm1 = Balance_PwmCount(controller->config.base_pwm1 +
+                                      controller->config.correction_gain1 *
+                                      correction);
+    controller->pwm2 = Balance_PwmCount(controller->config.base_pwm2 -
+                                      controller->config.correction_gain2 *
+                                      correction);
 }
 
 void BalanceController_GetPwm(const BalanceController *controller,
@@ -157,6 +161,14 @@ void BalanceController_GetPwm(const BalanceController *controller,
 {
     *pwm1 = controller->pwm1;
     *pwm2 = controller->pwm2;
+}
+
+void BalanceController_GetBasePwm(const BalanceController_Config *config,
+                                  uint16_t *pwm1,
+                                  uint16_t *pwm2)
+{
+    *pwm1 = Balance_PwmCount(config->base_pwm1);
+    *pwm2 = Balance_PwmCount(config->base_pwm2);
 }
 
 uint8_t BalanceController_IsArmed(const BalanceController *controller)
