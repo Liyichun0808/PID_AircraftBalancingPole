@@ -8,15 +8,35 @@ Each Keil project under `MDK-ARM` uses its own application snapshot here:
 - `MotorPwmTest`
 - `DirectRun`
 - `DirectRunRetry`
+- `DirectRunCalibrated`
 - `HardwareTest`
 - `HardwareI2C`
 - `InitFailPwmTest`
 - `InitResultPwmTest`
 - `WhoAmITest`
+- `SensorAxisTest`
 
 Each profile contains independent `Core/Src`, `Core/Inc`, and `MyCode` copies.
 Edit the profile directory used by the matching `.uvprojx`; edits to a profile
 do not modify another profile. STM32 HAL/CMSIS vendor drivers remain shared.
+
+## DirectRunCalibrated
+
+Use `PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx` when the pole can
+be held upright and still during startup. PWM remains at zero while 100 sensor
+samples are collected over about one second. The driver averages the gyro bias
+and accelerometer angle; the sampled orientation becomes 0 degrees. On
+successful calibration, equal base PWM is applied and the DirectRun PID starts
+on its first valid control sample. If sensor initialization or calibration
+fails, outputs stay at zero. Do not power up with the pole tilted or moving,
+because this profile intentionally treats its stationary startup orientation
+as the balance reference.
+
+This is the current tuning baseline: all three PID terms are enabled
+(`Kp=1.0`, `Ki=0.05`, `Kd=0.08`). The D term uses the calibrated MPU6500
+`Gyro Y` rate, while the angle feedback uses the measured `Accel X/Z` axes.
+PWM1/PWM2 use opposite correction increments, with the calibrated motor
+direction sign fixed in the profile's `correction_sign` setting.
 
 ## WhoAmITest
 
@@ -27,6 +47,19 @@ software I2C on PB6/PB7. It reads register `0x75` at 7-bit addresses `0x68` and
 neither address responds. Each flash is 150 ms on, followed by a 1.5 second
 pause after the pattern. This test does not start TIM2 PWM, initialize a motor
 controller, or run PID.
+
+## SensorAxisTest
+
+Use `PID_AircraftBalancingPole_SensorAxisTest.uvprojx` to identify the MPU6500
+sensor axes without starting either motor PWM or PID. PC13 patterns repeat in
+two groups: one marker flash followed by 1/2/3 axis flashes reports the
+dominant accelerometer gravity axis; two marker flashes followed by 1/2/3 axis
+flashes reports the dominant gyroscope axis during a 2-second motion window.
+The axis codes are X=1, Y=2, Z=3. After the axis flashes, a short LED hold means
+positive raw value and a long hold means negative. Four flashes mean no
+dominant gravity axis or no detected rotation; eight flashes indicate an I2C
+or sensor initialization/read error. The live raw samples are also available
+in the debugger as `sensor_accel_raw[0..2]` and `sensor_gyro_raw[0..2]`.
 
 ## InitResultPwmTest
 
