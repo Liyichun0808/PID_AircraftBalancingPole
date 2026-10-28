@@ -256,8 +256,8 @@ MDK-ARM/PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx
 
 - `target_angle_deg = 0.0`：目标为上电校准得到的零度姿态。
 - `kp = 1.0`：比例增益；角度误差单位为度，修正量单位为 PWM 占空比百分点，因此当前增益相当于每偏 1° 给出 1 个百分点的修正，最终仍受输出限幅约束。
-- `base_pwm1 = 20.0`、`base_pwm2 = 20.0`：两路独立基础占空比，目标角度下仍能分别调整；校准成功后的启动输出也使用这两个参数。
-- `correction_gain1 = 1.0`、`correction_gain2 = 1.0`：两路独立纠偏系数，分别乘在已限幅的 P 修正量上。使用正值保留现有纠偏方向，数值须经实测标定。
+- 当前试调值为 `base_pwm1 = 17.5`、`base_pwm2 = 20.0`：按实测力臂 `d1=81 mm`、`d2=71 mm`，先降低力臂较长的 PWM1 基础输出；目标角度下仍可分别调整。
+- 当前试调值为 `correction_gain1 = 0.8765`、`correction_gain2 = 1.0`：先按 `d2/d1=71/81` 缩小 PWM1 的纠偏增量。两项都是基于推力随 PWM 近似同比变化的初始值，必须结合实机回正结果继续调整。
 - `output_limit = 30.0`：P 修正量限幅为 ±30 个百分点。
 - `correction_sign = -1.0`：按已实测的电机增减方向设置。
 - `CONTROL_PERIOD_MS = 10`：控制周期；它不进入 P 公式，但决定传感器更新和控制刷新频率。

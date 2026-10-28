@@ -62,9 +62,9 @@ static const BalanceController_Config controller_config =
   .kp = 1.0f,
   .output_limit = 30.0f,
   /* Calibrate base commands and correction gains independently on hardware. */
-  .base_pwm1 = 20.0f,
+  .base_pwm1 = 17.5f,
   .base_pwm2 = 20.0f,
-  .correction_gain1 = 1.0f,
+  .correction_gain1 = 0.8765f,
   .correction_gain2 = 1.0f,
   .correction_sign = -1.0f,
   .arm_delay_ms = CONTROL_DIRECT_RUN ? 0U : 1000U,
