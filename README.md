@@ -76,23 +76,24 @@
 
 ## 2. 仓库完整目录架构
 
-以下主体展示原六个基线工程的目录结构；新增第七版的入口与共享依赖见版本 7 说明。
+以下展示 GitHub `master` 中七个 Keil 版本的目录结构。前六套为独立应用快照；第七套 Watch 测试使用独立入口，复用第五版硬件初始化和第六版姿态/控制模块。
 本机尚未跟踪的旧工程、仿真和编译产物不属于此结构。
-六个应用目录的文件布局相同，在下一节逐一列出公共布局及各文件职责；厂商驱动按实际子目录列出。
+前六个应用目录的文件布局相同，在下一节逐一列出公共布局及各文件职责；第七版的差异见版本 7 说明。
 
 ```text
 PID_AircraftBalancingPole/
 ├── README.md                              # 中文版本索引、目录架构和使用说明
 └── STM32cube_Keil5/
     └── PID_AircraftBalancingPole/
-        ├── BuildProfiles/                 # 六套独立应用源码，每套 28 个文件
+        ├── BuildProfiles/                 # 六套基线快照及一套 Watch 测试源码
         │   ├── MotorPwmTest/              # 1. 单独 PWM 测试
         │   ├── InitResultPwmTest/         # 2. MPU6050 0x68：成功 30% / 失败 0%
         │   ├── WhoAmITest/                # 3. LED 识别传感器型号
         │   ├── InitFailPwmTest/           # 4. MPU6500 0x70 ID 验证
         │   ├── SensorAxisTest/            # 5. 实际 XYZ 轴向测试
-        │   └── DirectRunCalibrated/       # 6. P 控制运行基线
-        ├── Drivers/                       # 六个工程共享的厂商驱动
+        │   ├── DirectRunCalibrated/       # 6. P 控制运行版，当前力臂初始试调值
+        │   └── KeilWatchTest/             # 7. Watch 倾角/混控诊断，实际电机输出关闭
+        ├── Drivers/                       # 七个工程共享的厂商驱动
         │   ├── CMSIS/
         │   │   ├── Include/              # Cortex-M 核心和编译器适配头文件
         │   │   └── Device/ST/STM32F1xx/
@@ -110,13 +111,14 @@ PID_AircraftBalancingPole/
         │       ├── Src/                  # HAL/LL 厂商驱动源码
         │       └── LICENSE.txt           # HAL 驱动许可证
         └── MDK-ARM/
-            ├── startup_stm32f103xb.s     # 六个工程实际共用的启动汇编
+            ├── startup_stm32f103xb.s     # 七个工程实际共用的启动汇编
             ├── PID_AircraftBalancingPole_MotorPwmTest.uvprojx
             ├── PID_AircraftBalancingPole_InitResultPwmTest.uvprojx
             ├── PID_AircraftBalancingPole_WhoAmITest.uvprojx
             ├── PID_AircraftBalancingPole_InitFailPwmTest.uvprojx
             ├── PID_AircraftBalancingPole_SensorAxisTest.uvprojx
             ├── PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx
+            ├── PID_AircraftBalancingPole_KeilWatchTest.uvprojx
             └── DebugConfig/              # 仓库保留的调试配置
                 ├── MotorPwmTest_STM32F103C8_1.0.0.dbgconf
                 ├── InitFailPwmTest_STM32F103C8_1.0.0.dbgconf
@@ -126,7 +128,7 @@ PID_AircraftBalancingPole/
 
 ### 每个 BuildProfiles 版本内的全部应用文件
 
-下列 `<版本名>` 分别代表前述六个目录，不是需要创建的实际目录。
+下列 `<版本名>` 分别代表前述六个基线目录，不是需要创建的实际目录；KeilWatchTest 目录有独立布局和 README。
 每套都包含 6 个核心头文件、7 个核心源文件和 15 个功能模块文件，共 28 个文件。版本 6 使用
 `p_controller.c/.h` 替代前五套快照中的 `pid_controller.c/.h`。
 
@@ -256,8 +258,8 @@ MDK-ARM/PID_AircraftBalancingPole_DirectRunCalibrated.uvprojx
 
 - `target_angle_deg = 0.0`：目标为上电校准得到的零度姿态。
 - `kp = 1.0`：比例增益；角度误差单位为度，修正量单位为 PWM 占空比百分点，因此当前增益相当于每偏 1° 给出 1 个百分点的修正，最终仍受输出限幅约束。
-- 当前试调值为 `base_pwm1 = 17.5`、`base_pwm2 = 20.0`：按实测力臂 `d1=81 mm`、`d2=71 mm`，先降低力臂较长的 PWM1 基础输出；目标角度下仍可分别调整。
-- 当前试调值为 `correction_gain1 = 0.8765`、`correction_gain2 = 1.0`：先按 `d2/d1=71/81` 缩小 PWM1 的纠偏增量。两项都是基于推力随 PWM 近似同比变化的初始值，必须结合实机回正结果继续调整。
+- `base_pwm1 = 17.5`、`base_pwm2 = 20.0`：按实测力臂 `d1=81 mm`、`d2=71 mm` 做的初始折算；控制器取整后 PWM1 基础比较值为 18。用户实测目前杆在中间时向两侧倒的概率接近，故先保留这组基础值。
+- `correction_gain1 = 0.8765`、`correction_gain2 = 1.0`：按 `d2/d1=71/81` 缩小 PWM1 纠偏增量。当前两组值是已基本可用的力臂初始试调参数，不代表推力线性假设已被验证。
 - `output_limit = 30.0`：P 修正量限幅为 ±30 个百分点。
 - `correction_sign = -1.0`：按已实测的电机增减方向设置。
 - `CONTROL_PERIOD_MS = 10`：控制周期；它不进入 P 公式，但决定传感器更新和控制刷新频率。
@@ -271,9 +273,9 @@ PWM1 = 限幅并取整(base_pwm1 + correction_gain1 × correction)
 PWM2 = 限幅并取整(base_pwm2 - correction_gain2 × correction)
 ```
 
-每路最终范围为 0～99，因此即使基础 PWM 为 20%，某一路也可能在较大修正时单独降到 0。
+每路最终范围为 0～99，因此某一路也可能在较大修正时单独降到 0。
 倾角超限或连续传感器故障会让两路同时归零并锁存；当前自动运行版需要复位后重新启动。
-当前默认值保留原有 20% 基础输出和对称差动响应；力矩补偿尚未标定，不表示两路实际推力或力矩相等。
+当前基础值按实测力臂做了初始调整，PWM1/PWM2 纠偏增量也不再对称；由于没有实测两台电机的推力曲线，不能据此断言两侧的实际力矩完全相等。
 
 ### 不同电机力臂的标定
 
@@ -288,7 +290,17 @@ PWM2 = 限幅并取整(base_pwm2 - correction_gain2 × correction)
 - 在固定且有防护的测试架上，记录相同供电电压下各电机在多个工作点的实际推力，确定各自的 PWM—推力关系。
 - 基础输出使用 `base_pwm1/base_pwm2` 标定，使目标姿态附近的净力矩平衡；只改变纠偏系数不会改变角度误差为零时的基础输出。
 - 若工作点附近推力斜率为 `k1 = dF1/dPWM1`、`k2 = dF2/dPWM2`，两路等力矩增量的纠偏分配满足 `correction_gain1 / correction_gain2 = (d2 × k2) / (d1 × k1)`。只有两路局部斜率相等时，系数比才等于 `71/81`。
-- 单侧无法回正时还要检查保护和输出饱和：当前默认配置的单路最大输出为 50%，超过 ±45° 或连续三次传感器失败会两路关断并锁存故障。增大 Kp 不会抬高既有输出限幅。
+- 单侧无法回正时还要检查保护和输出饱和：当前配置 PWM2 最高计算值为 50%，PWM1 受 0.8765 纠偏系数影响，最大计算值约为 44%；超过 ±45° 或连续三次传感器失败会两路关断并锁存故障。增大 Kp 不会抬高既有 P 修正限幅。
+
+### 下一步调参：先小步调整 Kp
+
+目前使用者反馈，杆从中间位置向两侧倒的概率已接近，先保留 `base_pwm1/base_pwm2` 和两路 `correction_gain`，不要同时改多个参数。下一步只观察并微调 `kp`，目标是让小角度偏移能及时回正，同时不出现持续摆动。
+
+1. 将杆体牢固安装在有机械限位的测试架上，确认可以立即切断电机电源；人员远离旋桨平面。没有可靠固定和断电手段时，不做电机运行测试。KeilWatchTest 的实际输出恒为 0，只能看计算值，不能用于本步骤。
+2. 使用 `DirectRunCalibrated`，从校准后的目标姿态分别向 PWM1、PWM2 方向偏约 5°，松手后观察角度和角速度回到零附近的过程。每次采用相近的初始角度，并记录最大角度、回正时间、是否越过零点后继续摆动。
+3. 若两边都回正慢且没有明显摆动，只把 `kp` 从 `1.0` 提高约 10%（例如 `1.1`），重新编译并重复两侧测试；每轮只改 `kp`。
+4. 若出现越过零点后的反复摆动、过冲明显增大，或任一方向计算 PWM 接近限幅，则退回上一个稳定的 `kp`。若只有一侧表现差，先记录两侧角度/角速度和 PWM，不用 `kp` 掩盖方向或单侧输出问题。
+5. 每次改动前先把当前 Git 版本上传备份。当前 KeilWatchTest 参数只用于比较计算结果；最终参数必须在固定测试架上用运行版验证，不能把 Watch 的 `pwm*_calc` 当成实测推力。
 
 ## 6. 编译与烧录
 
